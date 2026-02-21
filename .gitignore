@@ -1,0 +1,10 @@
+# Environment
+.env
+*.db
+output/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
