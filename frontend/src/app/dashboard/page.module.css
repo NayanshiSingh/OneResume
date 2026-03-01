@@ -1,0 +1,157 @@
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD OVERVIEW
+   ════════════════════════════════════════════════════════════════ */
+
+.pageHeader {
+    margin-bottom: 48px;
+}
+
+.pageTitle {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-top: 8px;
+}
+
+/* ── Status Grid ───────────────────────────────────────────── */
+.statusGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: var(--hairline);
+    margin-bottom: 48px;
+}
+
+.statCard {
+    padding: 24px;
+    border-right: var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.statCard:last-child {
+    border-right: none;
+}
+
+.statTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.statValue {
+    font-family: var(--font-headline);
+    font-weight: 900;
+    font-size: 32px;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+}
+
+.statSub {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Quick Actions ─────────────────────────────────────────── */
+.actionsHeader {
+    margin-bottom: 16px;
+}
+
+.actionsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border: var(--hairline);
+}
+
+.actionCard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: var(--hairline);
+    border-right: var(--hairline);
+    transition: background var(--transition-base);
+    text-decoration: none;
+    color: var(--fg);
+}
+
+.actionCard:nth-child(2n) {
+    border-right: none;
+}
+
+.actionCard:nth-last-child(-n + 2) {
+    border-bottom: none;
+}
+
+.actionCard:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.actionIcon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--hairline);
+    flex-shrink: 0;
+}
+
+.actionTitle {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.actionSub {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .statusGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .statCard:nth-child(2) {
+        border-right: none;
+    }
+
+    .statCard:nth-child(1),
+    .statCard:nth-child(2) {
+        border-bottom: var(--hairline);
+    }
+}
+
+@media (max-width: 768px) {
+    .statusGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .statCard {
+        border-right: none;
+        border-bottom: var(--hairline);
+    }
+
+    .statCard:last-child {
+        border-bottom: none;
+    }
+
+    .actionsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .actionCard {
+        border-right: none !important;
+        border-bottom: var(--hairline) !important;
+    }
+
+    .actionCard:last-child {
+        border-bottom: none !important;
+    }
+}

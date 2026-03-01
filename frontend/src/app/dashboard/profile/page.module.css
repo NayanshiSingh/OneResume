@@ -1,0 +1,227 @@
+/* ════════════════════════════════════════════════════════════════
+   PROFILE PAGE
+   ════════════════════════════════════════════════════════════════ */
+
+.pageHeader {
+    margin-bottom: 40px;
+}
+
+.pageTitle {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-top: 8px;
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+.errorBar {
+    padding: 12px 16px;
+    border: 0.5px solid rgba(239, 68, 68, 0.3);
+    margin-bottom: 24px;
+    word-break: break-all;
+}
+
+/* ── Loading ───────────────────────────────────────────────── */
+.loadingState {
+    padding: 80px 0;
+    text-align: center;
+}
+
+/* ── Onboarding ────────────────────────────────────────────── */
+.onboarding {
+    padding: 40px;
+    border: var(--hairline);
+    max-width: 480px;
+}
+
+.onboardTitle {
+    font-size: 2rem;
+    margin: 8px 0 24px;
+}
+
+.onboardForm {
+    max-width: 400px;
+}
+
+/* ── Sections ──────────────────────────────────────────────── */
+.sections {
+    border: var(--hairline);
+}
+
+.section {
+    border-bottom: var(--hairline);
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.sectionHead {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    transition: background var(--transition-base);
+    text-align: left;
+}
+
+.sectionHead:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sectionTag {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    opacity: 0.3;
+    min-width: 40px;
+}
+
+.sectionTitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    flex: 1;
+}
+
+.sectionCount {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    min-width: 20px;
+    text-align: center;
+}
+
+.sectionBody {
+    padding: 0 20px 20px;
+}
+
+/* ── List Items ────────────────────────────────────────────── */
+.listItem {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+}
+
+.listItem:last-of-type {
+    border-bottom: none;
+}
+
+.listContent {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.listTitle {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--fg);
+}
+
+.listSub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.bulletList {
+    padding-left: 16px;
+    margin-top: 6px;
+    list-style: none;
+}
+
+.bulletList li {
+    position: relative;
+    padding-left: 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
+}
+
+.bulletList li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 11px;
+}
+
+/* ── Add Form ──────────────────────────────────────────────── */
+.addForm {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+}
+
+.addForm .mono-label {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.inlineForm {
+    /* personal info form */
+}
+
+/* ── Skills ────────────────────────────────────────────────── */
+.skillGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.skillChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: var(--hairline);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.skillCat {
+    font-size: 8px;
+    opacity: 0.4;
+}
+
+.chipDelete {
+    background: none;
+    border: none;
+    color: rgba(239, 68, 68, 0.5);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color var(--transition-base);
+}
+
+.chipDelete:hover {
+    color: #ef4444;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .sectionHead {
+        flex-wrap: wrap;
+    }
+}

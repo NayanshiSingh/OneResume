@@ -1,10 +1,16 @@
 # Environment
-.env
+backend/.env
 *.db
-output/
+backend/output/
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
 dist/
 build/
+.venv/
+node_modules/
+Test.md
+PRD.md
+databaseschema.md
+feature to component Mapping.md

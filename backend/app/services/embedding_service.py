@@ -1,6 +1,6 @@
 """Embedding Service — generates and manages text embeddings.
 
-Uses sentence-transformers (all-MiniLM-L6-v2) for local inference.
+Uses Pinecone Inference API (multilingual-e5-large) for hosted inference.
 Embeddings stored as JSON arrays in SQLite (pgvector-ready).
 """
 
@@ -13,33 +13,41 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_model = None  # lazy-loaded singleton
+_client = None  # lazy-loaded singleton
 
 
-def _get_model():
-    """Lazy-load the sentence transformer model."""
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        logger.info("Loading embedding model: %s", settings.EMBEDDING_MODEL)
-        _model = SentenceTransformer(settings.EMBEDDING_MODEL)
-    return _model
+def _get_client():
+    """Lazy-load the Pinecone client."""
+    global _client
+    if _client is None:
+        from pinecone import Pinecone
+        logger.info("Initializing Pinecone client with model: %s", settings.EMBEDDING_MODEL)
+        _client = Pinecone(api_key=settings.PINECONE_API_KEY)
+    return _client
 
 
 def generate_embedding(text: str) -> list[float]:
     """Generate an embedding vector for a text string."""
-    model = _get_model()
-    embedding = model.encode(text, normalize_embeddings=True)
-    return embedding.tolist()
+    pc = _get_client()
+    result = pc.inference.embed(
+        model=settings.EMBEDDING_MODEL,
+        inputs=[{"text": text}],
+        parameters={"input_type": "passage", "truncate": "END"},
+    )
+    return list(result.data[0].values)
 
 
 def generate_embeddings(texts: list[str]) -> list[list[float]]:
     """Batch generate embeddings for multiple texts."""
     if not texts:
         return []
-    model = _get_model()
-    embeddings = model.encode(texts, normalize_embeddings=True)
-    return embeddings.tolist()
+    pc = _get_client()
+    result = pc.inference.embed(
+        model=settings.EMBEDDING_MODEL,
+        inputs=[{"text": t} for t in texts],
+        parameters={"input_type": "passage", "truncate": "END"},
+    )
+    return [list(item.values) for item in result.data]
 
 
 def embedding_to_json(embedding: list[float]) -> str:

@@ -14,9 +14,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
 
-    # ── Embeddings ────────────────────────────────────────────
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
-    EMBEDDING_DIM: int = 384
+    # ── Pinecone Embeddings ──────────────────────────────────
+    PINECONE_API_KEY: str = ""
+    EMBEDDING_MODEL: str = "multilingual-e5-large"
+    EMBEDDING_DIM: int = 1024
 
     # ── Resume constraints ────────────────────────────────────
     MAX_EXPERIENCE_SECTIONS: int = 3

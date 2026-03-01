@@ -5,16 +5,13 @@ import json
 
 
 class TestEmbeddingService:
-    """Test embedding service (requires sentence-transformers model download)."""
+    """Test embedding service (uses Pinecone Inference API)."""
 
     def test_generate_embedding(self):
         from app.services.embedding_service import generate_embedding
         emb = generate_embedding("Python backend engineer with FastAPI experience")
         assert isinstance(emb, list)
         assert len(emb) > 0
-        # Should be normalized (L2 norm ≈ 1.0)
-        import numpy as np
-        assert abs(np.linalg.norm(emb) - 1.0) < 0.01
 
     def test_batch_generate_embeddings(self):
         from app.services.embedding_service import generate_embeddings

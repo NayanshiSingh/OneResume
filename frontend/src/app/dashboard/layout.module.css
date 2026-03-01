@@ -1,0 +1,120 @@
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT
+   ════════════════════════════════════════════════════════════════ */
+
+.shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+.sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: var(--hairline);
+    background: var(--bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+}
+
+.sidebarTop {
+    padding: 24px 20px;
+    border-bottom: var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.backLink {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-headline);
+    font-weight: 900;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    transition: color var(--transition-base);
+}
+
+.backLink:hover {
+    color: var(--accent);
+}
+
+.sideNav {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all var(--transition-base);
+    border-left: 2px solid transparent;
+    text-decoration: none;
+}
+
+.navItem:hover {
+    color: var(--fg);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.navItemActive {
+    color: var(--fg);
+    border-left-color: var(--accent);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.navTag {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    opacity: 0.3;
+    min-width: 36px;
+}
+
+.navLabel {
+    flex: 1;
+}
+
+.sidebarBottom {
+    padding: 16px 20px;
+    border-top: var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ── Main ──────────────────────────────────────────────────── */
+.main {
+    flex: 1;
+    margin-left: 260px;
+    min-height: 100vh;
+    padding: 40px;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+
+    .main {
+        margin-left: 0;
+        padding: 24px 16px;
+    }
+}
