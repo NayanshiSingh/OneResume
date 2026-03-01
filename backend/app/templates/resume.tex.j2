@@ -1,0 +1,104 @@
+% OneResume — ATS-Friendly LaTeX Resume Template
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+
+% Remove page numbers
+\pagestyle{empty}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{8pt}{4pt}
+
+% Tight lists
+\setlist[itemize]{nosep, leftmargin=1.5em, label=\textbullet}
+
+\begin{document}
+
+% ── Header ────────────────────────────────────────
+{% if personal_info %}
+\begin{center}
+    {\LARGE\textbf{ {{- personal_info.full_name | latex_escape -}} }}\\[4pt]
+    {% if personal_info.email or personal_info.phone_number %}
+    {% if personal_info.email %}{{ personal_info.email | latex_escape }}{% endif %}
+    {% if personal_info.email and personal_info.phone_number %} $\mid$ {% endif %}
+    {% if personal_info.phone_number %}{{ personal_info.phone_number | latex_escape }}{% endif %}
+    {% endif %}
+    {% if external_profiles %}
+    \\
+    {% for ep in external_profiles %}
+    \href{ {{- ep.profile_url | latex_escape -}} }{ {{- ep.platform | latex_escape -}} }{% if not loop.last %} $\mid$ {% endif %}
+    {% endfor %}
+    {% endif %}
+\end{center}
+{% endif %}
+
+% ── Education ─────────────────────────────────────
+{% if education %}
+\section{Education}
+{% for edu in education %}
+\textbf{ {{- edu.degree | latex_escape -}} {% if edu.field_of_study %} in {{ edu.field_of_study | latex_escape }}{% endif %}} \hfill {% if edu.start_year %}{{ edu.start_year }}{% endif %}{% if edu.start_year and edu.end_year %} -- {% endif %}{% if edu.end_year %}{{ edu.end_year }}{% endif %}\\
+{{ edu.institution | latex_escape }}{% if edu.grade %} \hfill GPA: {{ edu.grade | latex_escape }}{% endif %}
+{% if not loop.last %}\\[4pt]{% endif %}
+{% endfor %}
+{% endif %}
+
+% ── Experience ────────────────────────────────────
+{% if experience %}
+\section{Experience}
+{% for exp in experience %}
+\textbf{ {{- exp.title | latex_escape -}} } \hfill {{ exp.subtitle | latex_escape }}
+\begin{itemize}
+{% for bullet in exp.bullets %}
+    \item {{ bullet | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% if not loop.last %}\vspace{2pt}{% endif %}
+{% endfor %}
+{% endif %}
+
+% ── Projects ──────────────────────────────────────
+{% if projects %}
+\section{Projects}
+{% for proj in projects %}
+\textbf{ {{- proj.title | latex_escape -}} }{% if proj.subtitle %} \hfill \textit{ {{- proj.subtitle | latex_escape -}} }{% endif %}
+\begin{itemize}
+{% for bullet in proj.bullets %}
+    \item {{ bullet | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% if not loop.last %}\vspace{2pt}{% endif %}
+{% endfor %}
+{% endif %}
+
+% ── Skills ────────────────────────────────────────
+{% if skills %}
+\section{Skills}
+{{ skills | join(', ') | latex_escape }}
+{% endif %}
+
+% ── Certifications ────────────────────────────────
+{% if certifications %}
+\section{Certifications}
+{% for cert in certifications %}
+\textbf{ {{- cert.name | latex_escape -}} }{% if cert.issuing_organization %} -- {{ cert.issuing_organization | latex_escape }}{% endif %}{% if cert.year %} \hfill {{ cert.year }}{% endif %}
+{% if not loop.last %}\\{% endif %}
+{% endfor %}
+{% endif %}
+
+% ── Achievements ──────────────────────────────────
+{% if achievements %}
+\section{Achievements}
+\begin{itemize}
+{% for ach in achievements %}
+    \item \textbf{ {{- ach.title | latex_escape -}} }{% if ach.description %}: {{ ach.description | latex_escape }}{% endif %}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+\end{document}
