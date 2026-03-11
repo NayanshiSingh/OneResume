@@ -464,20 +464,6 @@ erDiagram
     }
 ```
 
----
-
-## 🔮 Roadmap
-
-- [ ] PostgreSQL + pgvector migration for production-grade vector search
-- [ ] Multi-template LaTeX support (modern, classic, minimal)
-- [ ] Resume performance analytics dashboard
-- [ ] Public resume sharing links
-- [ ] Multi-language resume generation
-- [ ] Browser extension for one-click JD import
-- [ ] CI/CD pipeline & cloud deployment (AWS/GCP)
-
----
-
 ## 📄 License
 
 This project is built as a portfolio project by **Nayanshi Singh**.
