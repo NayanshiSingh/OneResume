@@ -482,8 +482,3 @@ erDiagram
 
 This project is built as a portfolio project by **Nayanshi Singh**.
 
----
-
-<p align="center">
-  <sub>Built with ❤️ using FastAPI, Next.js, Google Gemini, and Pinecone</sub>
-</p>
