@@ -1,0 +1,160 @@
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 40px;
+  margin-top: 8px;
+}
+
+.link {
+  text-decoration: underline;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--hairline);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: var(--hairline);
+}
+
+.rowMain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rowTitle {
+  font-weight: 600;
+}
+
+/* ── Review page ──────────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.section {
+  border-top: var(--hairline);
+  padding: 12px 0;
+}
+
+.entry {
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.excluded {
+  opacity: 0.45;
+}
+
+.entryHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.entryTitle {
+  font-weight: 600;
+}
+
+.bullet {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 0 4px 16px;
+  font-size: 13px;
+}
+
+.bulletBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.original {
+  font-size: 12px;
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.editedTag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #ca8a04;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 3px 8px;
+  border: var(--hairline);
+  background: none;
+  cursor: pointer;
+}
+
+.panel {
+  border: var(--hairline);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 16px;
+}
+
+.coverageRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: var(--hairline);
+  font-size: 12px;
+}
+
+.coverageTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.approveBox {
+  border: 1px solid #ca8a04;
+  padding: 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
