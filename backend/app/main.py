@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.errors import ConflictError, InvalidRequestError, NotFoundError
+from app.errors import ConflictError, InvalidRequestError, NotFoundError, ProviderUnavailableError
 from app.routers import auth, profiles, jd, resumes
 
 # Schema is managed by Alembic: run `alembic upgrade head` before starting the app.
@@ -49,6 +49,11 @@ async def conflict(_: Request, exc: ConflictError):
 @app.exception_handler(InvalidRequestError)
 async def invalid_request(_: Request, exc: InvalidRequestError):
     return JSONResponse({"detail": str(exc)}, status_code=422)
+
+
+@app.exception_handler(ProviderUnavailableError)
+async def provider_unavailable(_: Request, exc: ProviderUnavailableError):
+    return JSONResponse({"detail": str(exc)}, status_code=503)
 
 
 # ── Routers ───────────────────────────────────────────────────

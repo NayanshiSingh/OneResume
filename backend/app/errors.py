@@ -11,3 +11,7 @@ class ConflictError(Exception):
 
 class InvalidRequestError(Exception):
     """The request is well-formed but cannot be applied."""
+
+
+class ProviderUnavailableError(Exception):
+    """An external AI provider is not configured or cannot be reached."""

@@ -10,6 +10,7 @@ import numpy as np
 from typing import Optional
 
 from app.config import settings
+from app.errors import ProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ def _get_client():
 
 def _embed_batch(texts: list[str]) -> list[list[float]]:
     """The only call to the embedding provider; tests replace this function."""
+    if not settings.PINECONE_API_KEY:
+        raise ProviderUnavailableError("The embedding service is not configured (PINECONE_API_KEY is missing)")
     pc = _get_client()
     result = pc.inference.embed(
         model=settings.EMBEDDING_MODEL,

@@ -1,6 +1,9 @@
 """Edge case tests — empty JD, empty profile, long JD, duplicate skills."""
 
-from tests.conftest import fill_profile
+from app.config import settings
+from app.services import embedding_service
+
+REAL_EMBED_BATCH = embedding_service._embed_batch
 
 
 class TestEmptyJD:
@@ -51,3 +54,12 @@ class TestHealthCheck:
         resp = anon_client.get("/")
         assert resp.status_code == 200
         assert resp.json()["status"] == "ok"
+
+
+class TestMissingProvider:
+    def test_generation_without_embedding_key_explains_itself(self, client, monkeypatch, sample_jd_text):
+        monkeypatch.setattr(embedding_service, "_embed_batch", REAL_EMBED_BATCH)
+        monkeypatch.setattr(settings, "PINECONE_API_KEY", "")
+        resp = client.post("/api/resumes/generate", json={"jd_text": sample_jd_text})
+        assert resp.status_code == 503
+        assert "PINECONE_API_KEY" in resp.json()["detail"]
