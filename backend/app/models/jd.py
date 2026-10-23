@@ -18,6 +18,9 @@ class JDAnalysis(Base):
     raw_text: Mapped[str] = mapped_column(Text, nullable=True)
     structured_data: Mapped[str] = mapped_column(Text)  # JSONB → Text/JSON for SQLite
     embedding: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array
+    analysis_mode: Mapped[str] = mapped_column(String(10), default="basic")  # ai | basic
+    warnings: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of strings
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
