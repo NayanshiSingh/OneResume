@@ -25,8 +25,16 @@ class Settings(BaseSettings):
     MAX_BULLETS_PER_SECTION: int = 4
     MAX_SKILLS: int = 12
 
-    # ── File storage ──────────────────────────────────────────
-    OUTPUT_DIR: str = str(BASE_DIR / "output")
+    # ── Accounts and sessions ─────────────────────────────────
+    SESSION_COOKIE_NAME: str = "oneresume_session"
+    SESSION_TTL_DAYS: int = 14
+    COOKIE_SECURE: bool = False
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    APP_BASE_URL: str = "http://localhost:3000"
+    PASSWORD_RESET_TTL_MINUTES: int = 30
+
+    # ── Private file storage ──────────────────────────────────
+    STORAGE_DIR: str = str(BASE_DIR / "storage")
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
