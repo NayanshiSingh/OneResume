@@ -1,20 +1,47 @@
-"""Test fixtures — test database, synthetic profiles, and sample JDs."""
+"""Test fixtures: in-memory database, offline AI providers, signed-in clients, and sample data."""
 
-import json
+import hashlib
+import re
+
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 from app.models import *  # noqa: F401, F403 — ensure all models are registered
+from app.services import embedding_service
+
+TEST_PASSWORD = "correct-horse-battery"
 
 # ── Test database ─────────────────────────────────────────────
 
-TEST_DB_URL = "sqlite:///./test_oneresume.db"
-
-engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+)
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def fake_embed_batch(texts: list[str]) -> list[list[float]]:
+    """Deterministic bag-of-words vectors so tests never call Pinecone."""
+    vectors = []
+    for text in texts:
+        vector = [0.0] * 256
+        for token in re.findall(r"[a-z0-9+#.]+", text.lower()):
+            vector[int(hashlib.md5(token.encode()).hexdigest(), 16) % 256] += 1.0
+        vectors.append(vector)
+    return vectors
+
+
+@pytest.fixture(autouse=True)
+def offline_environment(monkeypatch, tmp_path):
+    """No live AI calls, and generated files go to a temporary directory."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setattr(embedding_service, "_embed_batch", fake_embed_batch)
 
 
 @pytest.fixture(autouse=True)
@@ -30,28 +57,42 @@ def db():
 
 
 @pytest.fixture
-def client(db):
-    """FastAPI test client with overridden DB dependency."""
-    from fastapi.testclient import TestClient
+def make_client(db):
+    """Factory for independent API clients (each keeps its own cookies)."""
+    app.dependency_overrides[get_db] = lambda: db
+    clients = []
 
-    def _override_get_db():
-        try:
-            yield db
-        finally:
-            pass
+    def _make() -> TestClient:
+        c = TestClient(app)
+        clients.append(c)
+        return c
 
-    app.dependency_overrides[get_db] = _override_get_db
-    with TestClient(app) as c:
-        yield c
+    yield _make
+    for c in clients:
+        c.close()
     app.dependency_overrides.clear()
 
 
-# ── Synthetic data ────────────────────────────────────────────
+@pytest.fixture
+def anon_client(make_client):
+    return make_client()
 
 
 @pytest.fixture
-def sample_user_data():
-    return {"username": "testuser", "email": "test@example.com"}
+def client(make_client):
+    """A client signed in as a fresh user."""
+    c = make_client()
+    signup(c, "owner@example.com")
+    return c
+
+
+def signup(client: TestClient, email: str, password: str = TEST_PASSWORD) -> dict:
+    resp = client.post("/api/auth/register", json={"email": email, "password": password})
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+# ── Synthetic data ────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -204,47 +245,13 @@ def overloaded_jd_text():
 # ── Helpers ───────────────────────────────────────────────────
 
 
-def create_full_profile(client, user_data, profile_data):
-    """Helper to create a user + profile with all sections via API."""
-    # Create user
-    user_resp = client.post("/api/users/", json=user_data)
-    user_id = user_resp.json()["id"]
-
-    # Create profile
-    profile_resp = client.post(f"/api/profiles/{user_id}")
-    profile_id = profile_resp.json()["id"]
-
-    # Personal info
+def fill_profile(client: TestClient, profile_data: dict) -> dict:
+    """Create every profile section through the API and return the stored profile."""
     if "personal_info" in profile_data:
-        client.put(f"/api/profiles/{profile_id}/personal-info",
-                   json=profile_data["personal_info"])
-
-    # Education
-    for edu in profile_data.get("education", []):
-        client.post(f"/api/profiles/{profile_id}/education", json=edu)
-
-    # Skills
-    for skill in profile_data.get("skills", []):
-        client.post(f"/api/profiles/{profile_id}/skills", json=skill)
-
-    # Experience
-    for exp in profile_data.get("experience", []):
-        client.post(f"/api/profiles/{profile_id}/experience", json=exp)
-
-    # Projects
-    for proj in profile_data.get("projects", []):
-        client.post(f"/api/profiles/{profile_id}/projects", json=proj)
-
-    # Certifications
-    for cert in profile_data.get("certifications", []):
-        client.post(f"/api/profiles/{profile_id}/certifications", json=cert)
-
-    # Achievements
-    for ach in profile_data.get("achievements", []):
-        client.post(f"/api/profiles/{profile_id}/achievements", json=ach)
-
-    # External profiles
-    for ep in profile_data.get("external_profiles", []):
-        client.post(f"/api/profiles/{profile_id}/external-profiles", json=ep)
-
-    return user_id, profile_id
+        assert client.put("/api/profile/personal-info", json=profile_data["personal_info"]).status_code == 200
+    for section in ["education", "skills", "experience", "projects", "certifications", "achievements"]:
+        for item in profile_data.get(section, []):
+            assert client.post(f"/api/profile/{section}", json=item).status_code == 201
+    for item in profile_data.get("external_profiles", []):
+        assert client.post("/api/profile/external-profiles", json=item).status_code == 201
+    return client.get("/api/profile").json()

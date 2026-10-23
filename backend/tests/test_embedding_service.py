@@ -5,7 +5,7 @@ import json
 
 
 class TestEmbeddingService:
-    """Test embedding service (uses Pinecone Inference API)."""
+    """Embedding service wrapper; the provider call is replaced by a fake in conftest."""
 
     def test_generate_embedding(self):
         from app.services.embedding_service import generate_embedding
