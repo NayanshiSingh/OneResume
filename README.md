@@ -38,7 +38,7 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 | 🏆 **Composite Relevance Scoring** | Multi-factor scoring engine weighing semantic similarity, skill importance, section priority, recency, and ATS keyword overlap |
 | ✍️ **LLM-Powered Rewriting** | Gemini rewrites your resume bullets to be concise, impactful, and ATS-friendly — without fabricating any skills or experience |
 | 📊 **ATS Optimization Engine** | Rule-based engine enforces keyword coverage, section ordering, bullet limits, and formatting constraints |
-| 📥 **Multi-Format Export** | Download your resume as **PDF** (via LaTeX) or **DOCX** — professionally formatted and ready to submit |
+| 📥 **Multi-Format Export** | Download your resume as **PDF** (HTML template rendered with WeasyPrint) or **DOCX** — professionally formatted and ready to submit |
 | 🔄 **Resume Versioning** | Every generated resume is stored with version metadata, enabling comparison and rollback |
 | 🛡️ **Skill Confidence Tracking** | Transparent confidence flags (strong / inferred / weak) for every must-have skill — the system never hallucinates |
 
@@ -70,11 +70,11 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 │   └──────┘ └──────┘ └───────┘ └───────┘ └───────┘ └────────┘     │
 │       │        │         │          │          │          │           │
 │   ┌───▼────────▼─────────▼──────────▼──────────▼──────────▼───────┐  │
-│   │  Resume Assembler → LaTeX Renderer → Export Service (PDF/DOCX)│  │
+│   │  Resume Assembler → PDF Renderer → Export Service (PDF/DOCX)  │  │
 │   └──────────────────────────────────────────────────────────────┘   │
 │                                                                       │
 │   ┌──────────────────────────────────┐                                │
-│   │    SQLite (SQLAlchemy ORM)       │                                │
+│   │  PostgreSQL (SQLAlchemy+Alembic) │                                │
 │   │  Users │ Profiles │ JD Analysis  │                                │
 │   │  Resumes │ Resume Sections       │                                │
 │   └──────────────────────────────────┘                                │
@@ -156,18 +156,19 @@ When a required skill is missing from the profile, OneResume uses a 3-tier confi
 
 | Technology | Version | Purpose |
 |---|---|---|
-| **Python** | ≥ 3.10 | Core language |
+| **Python** | 3.12 recommended (≥ 3.10) | Core language |
 | **FastAPI** | ≥ 0.104 | Async REST API framework |
 | **SQLAlchemy** | ≥ 2.0 | ORM with declarative models |
 | **Pydantic** | ≥ 2.5 | Request/response validation & settings management |
 | **Alembic** | ≥ 1.13 | Database migration toolkit |
-| **SQLite** | — | Development database (PostgreSQL/pgvector ready) |
+| **PostgreSQL** | 17 | Database (Docker Compose locally); tests use in-memory SQLite |
 | **google-generativeai** | ≥ 0.3.0 | Google Gemini SDK |
 | **pinecone** | ≥ 5.0.0 | Pinecone Inference API for embeddings |
 | **NumPy** | ≥ 1.24 | Vector math and cosine similarity |
 | **python-docx** | ≥ 1.1 | DOCX resume export |
-| **Jinja2** | ≥ 3.1 | LaTeX template rendering |
-| **passlib + bcrypt** | — | Password hashing and authentication |
+| **Jinja2** | ≥ 3.1 | HTML resume template rendering |
+| **WeasyPrint** | ≥ 63 | HTML → PDF rendering |
+| **pwdlib (Argon2)** | ≥ 0.2 | Password hashing; sessions are httpOnly cookies |
 | **Uvicorn** | ≥ 0.24 | ASGI server |
 
 ### Frontend
@@ -209,8 +210,8 @@ OneResume/
 │   │   │   └── resume.py              # Resume + resume sections models
 │   │   ├── repositories/              # Data access layer
 │   │   ├── routers/
-│   │   │   ├── users.py               # /api/users — registration, auth
-│   │   │   ├── profiles.py            # /api/profiles — full profile CRUD
+│   │   │   ├── auth.py                # /api/auth — register, sign in/out, password reset, account deletion
+│   │   │   ├── profiles.py            # /api/profile — the signed-in user's profile and sections
 │   │   │   ├── jd.py                  # /api/jd — JD submission & analysis
 │   │   │   └── resumes.py             # /api/resumes — resume generation & download
 │   │   ├── schemas/                   # Pydantic request/response schemas
@@ -223,11 +224,12 @@ OneResume/
 │   │   │   ├── llm_service.py         # Bullet rewriting (Gemini + fallback)
 │   │   │   ├── ats_optimizer.py       # Rule-based ATS optimization
 │   │   │   ├── resume_assembler.py    # Final resume data assembly
-│   │   │   ├── latex_renderer.py      # LaTeX → PDF rendering
+│   │   │   ├── pdf_renderer.py        # HTML template → PDF (WeasyPrint)
 │   │   │   └── export_service.py      # DOCX export (python-docx)
-│   │   └── templates/                 # Jinja2 LaTeX templates
-│   ├── tests/                         # Comprehensive test suite (10 test modules)
-│   ├── output/                        # Generated resumes (PDF/DOCX)
+│   │   └── templates/                 # Jinja2 HTML resume template
+│   ├── tests/                         # Test suite (runs offline)
+│   ├── migrations/                    # Alembic schema migrations
+│   ├── storage/                       # Private generated files (gitignored)
 │   └── pyproject.toml                 # Python project config & dependencies
 │
 ├── frontend/
@@ -293,7 +295,7 @@ graph TD
 | 7 | `llm_service.py` | Gemini rewrites selected bullets (with fallback to rule-based) |
 | 8 | `ats_optimizer.py` | Enforces section limits, bullet limits, keyword coverage tracking |
 | 9 | `resume_assembler.py` | Assembles final resume data structure |
-| 10 | `latex_renderer.py` / `export_service.py` | Renders to PDF (LaTeX) and DOCX, stores resume record |
+| 10 | `pdf_renderer.py` / `export_service.py` | Renders PDF and DOCX into private storage; a format that fails to render is not offered |
 
 ---
 
@@ -301,9 +303,10 @@ graph TD
 
 ### Prerequisites
 
-- **Python** ≥ 3.10
+- **Python** 3.12 (tested; [uv](https://docs.astral.sh/uv/) installs it in one command)
 - **Node.js** ≥ 18
-- **pdflatex** (optional, for PDF generation — install via `texlive-full` or equivalent)
+- **Docker** (for PostgreSQL)
+- **pango** for PDF export (`brew install pango` on macOS, `apt install libpango-1.0-0 libpangoft2-1.0-0` on Debian/Ubuntu)
 
 ### 1. Clone the Repository
 
@@ -317,21 +320,23 @@ cd OneResume
 ```bash
 cd backend
 
-# Create and activate virtual environment
-python -m venv .venv
+# Start PostgreSQL (host port 5433)
+docker compose up -d --wait db
+
+# Create a Python 3.12 virtual environment and install dependencies
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e ".[dev]"
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-# Install dependencies
-pip install -e ".[dev]"
-
-# Configure environment variables
+# Configure environment variables (database URL, API keys)
 cp .env.example .env
-# Edit .env with your API keys:
-#   GEMINI_API_KEY=your-gemini-api-key
-#   PINECONE_API_KEY=your-pinecone-api-key
+
+# Create or upgrade the database schema
+alembic upgrade head
 
 # Start the backend server
-uvicorn app.main:app --reload --port 8000
+# macOS: WeasyPrint needs Homebrew's libraries on the loader path
+DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib uvicorn app.main:app --reload --port 8000
 ```
 
 ### 3. Frontend Setup
@@ -346,7 +351,11 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000` and the API at `http://localhost:8000`.
+Open `http://localhost:3000`. Next.js proxies `/api/*` to the backend (`BACKEND_URL`, default `http://localhost:8000`), so the session cookie stays first-party.
+
+Without `PINECONE_API_KEY`, resume generation returns a 503 explaining that the embedding service is not configured. Without `GEMINI_API_KEY`, JD analysis and bullet rewriting use rule-based fallbacks.
+
+Password reset emails are written to the backend log in development.
 
 ### 4. API Documentation
 
@@ -361,7 +370,8 @@ With the backend running, visit:
 ```bash
 cd backend
 
-# Run full test suite
+# Run full test suite (offline: Gemini and Pinecone are faked)
+# macOS: prefix with DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib so the PDF test runs
 pytest
 
 # Run with coverage
@@ -377,7 +387,11 @@ pytest tests/test_integration.py
 
 | Module | Tests |
 |---|---|
-| `test_profile_crud.py` | Full profile CRUD operations |
+| `test_auth.py` | Registration, sessions, password reset, origin check, account deletion |
+| `test_ownership.py` | Users cannot read, change, or download each other's data |
+| `test_profile_api.py` | Profile editing, ordering, and stale-embedding invalidation |
+| `test_exports.py` | Private artifact storage, correct download formats, template escaping |
+| `test_migrations.py` | Alembic migrations match the models |
 | `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
 | `test_embedding_service.py` | Embedding generation & cosine similarity |
 | `test_scoring_engine.py` | Composite scoring formula |
@@ -394,15 +408,23 @@ pytest tests/test_integration.py
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/users/register` | Register a new user |
-| `POST` | `/api/users/login` | Authenticate user |
-| `POST` | `/api/profiles/` | Create a user profile |
-| `GET` | `/api/profiles/{id}` | Fetch profile with all sections |
-| `PUT` | `/api/profiles/{id}` | Update profile sections |
+| `POST` | `/api/auth/register` | Create an account and sign in |
+| `POST` | `/api/auth/login` / `/api/auth/logout` | Sign in / out (httpOnly session cookie) |
+| `GET` | `/api/auth/me` | Current user |
+| `POST` | `/api/auth/password-reset/request` / `confirm` | Password reset by single-use emailed link |
+| `DELETE` | `/api/auth/account` | Delete the account, profile, and generated files |
+| `GET` | `/api/profile` | The signed-in user's profile with all sections |
+| `PUT` | `/api/profile/personal-info` | Save name and contact details |
+| `POST` / `PATCH` / `DELETE` | `/api/profile/{section}[/{id}]` | Add, edit, or remove education, skills, experience, projects, certifications, achievements, external-profiles |
+| `PUT` | `/api/profile/{section}/order` | Reorder a section |
+| `POST` / `PATCH` / `DELETE` / `PUT` | `/api/profile/{experience\|projects}/…/bullets` | Add, edit, remove, and reorder bullets |
 | `POST` | `/api/jd/analyze` | Submit and analyze a job description |
 | `POST` | `/api/resumes/generate` | Generate a tailored resume |
-| `GET` | `/api/resumes/{id}` | Fetch resume details |
-| `GET` | `/api/resumes/{id}/download` | Download resume file (PDF/DOCX) |
+| `GET` | `/api/resumes` / `/api/resumes/{id}` | List / fetch resumes with available formats |
+| `GET` | `/api/resumes/{id}/download?format=pdf\|docx` | Download a generated file |
+| `DELETE` | `/api/resumes/{id}` | Delete a resume and its files |
+
+Every route except health and account creation/sign-in requires a session, and only returns the signed-in user's data. State-changing requests from origins outside `ALLOWED_ORIGINS` are rejected.
 | `GET` | `/` | Health check |
 
 ---
@@ -413,7 +435,7 @@ All configuration is managed via environment variables (loaded from `.env`):
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///oneresume.db` | Database connection string |
+| `DATABASE_URL` | `sqlite:///oneresume.db` | Database connection string (`.env.example` points at Docker Postgres) |
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model identifier |
 | `PINECONE_API_KEY` | — | Pinecone API key for embeddings |
@@ -423,7 +445,12 @@ All configuration is managed via environment variables (loaded from `.env`):
 | `MAX_PROJECT_SECTIONS` | `3` | Max project sections in resume |
 | `MAX_BULLETS_PER_SECTION` | `4` | Max bullets per section |
 | `MAX_SKILLS` | `12` | Max skills listed in resume |
-| `OUTPUT_DIR` | `./output` | Directory for generated files |
+| `STORAGE_DIR` | `backend/storage` | Private directory for generated files |
+| `SESSION_TTL_DAYS` | `14` | Session lifetime |
+| `COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
+| `ALLOWED_ORIGINS` | `["http://localhost:3000"]` | Origins allowed to make state-changing requests |
+| `APP_BASE_URL` | `http://localhost:3000` | Used to build password reset links |
+| `PASSWORD_RESET_TTL_MINUTES` | `30` | Reset link lifetime |
 
 ---
 
