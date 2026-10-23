@@ -1,222 +1,105 @@
-"""Relevance Selector — picks top-N sections and top-K bullets.
+"""Relevance Selector — builds draft content from the profile for one job description.
 
-Implements must-have skill handling with graceful degradation:
-  1. Direct match → "strong"
-  2. Semantic equivalent → "inferred"
-  3. Weak match / fallback → "weak"
-
-Resume generation NEVER fails due to missing skills.
+Every profile entry is kept in the draft so the user can restore it; scores
+decide which entries and bullets start out included. Entries keep the
+user's profile order (normally reverse-chronological): relevance changes
+what is shown, never where it sits. Bullet wording is the user's own.
 """
 
-import json
-import logging
-from sqlalchemy.orm import Session
-
 from app.config import settings
-from app.models.profile import (
-    Profile, Experience, ExperienceBullet, Project, ProjectBullet,
-    Skill, Education, Certification, Achievement, ExternalProfile, PersonalInfo,
-)
-from app.domain.resume_draft import ResumeDraft, JDData, ScoredSection, ScoredBullet
-from app.services.embedding_service import (
-    generate_embedding, embedding_from_json, cosine_similarity,
-)
+from app.domain.resume_draft import JDData
+from app.models.profile import Profile
+from app.services.embedding_service import embedding_from_json
+from app.services.evidence_service import alternatives, contains_term, tokens
 from app.services.scoring_engine import score_bullet, score_section
 
-logger = logging.getLogger(__name__)
+
+def _top_ids(scored: list[tuple[str, float]], limit: int) -> set[str]:
+    return {item_id for item_id, _ in sorted(scored, key=lambda s: s[1], reverse=True)[:limit]}
 
 
-def _check_skill_confidence(
-    skill: str,
-    profile_skills: list[str],
-    all_bullet_texts: list[str],
-    jd_embedding: list[float],
-) -> str:
-    """Determine confidence level for a must-have skill."""
-    skill_lower = skill.lower()
-
-    # 1. Direct match
-    for ps in profile_skills:
-        if skill_lower == ps.lower():
-            return "strong"
-        if skill_lower in ps.lower() or ps.lower() in skill_lower:
-            return "strong"
-
-    # 2. Semantic inference from bullet texts
-    for bullet in all_bullet_texts:
-        if skill_lower in bullet.lower():
-            return "inferred"
-
-    # 3. Semantic similarity check
-    try:
-        skill_emb = generate_embedding(skill)
-        for bullet in all_bullet_texts[:20]:  # limit for performance
-            bullet_emb = generate_embedding(bullet)
-            sim = cosine_similarity(skill_emb, bullet_emb)
-            if sim > 0.6:
-                return "inferred"
-    except Exception:
-        pass
-
-    return "weak"
-
-
-def select_relevant_content(
-    db: Session,
-    profile: Profile,
-    jd_data: JDData,
-    jd_embedding: list[float],
-) -> ResumeDraft:
-    """Select and score the most relevant profile content for a JD."""
-    draft = ResumeDraft(profile_id=profile.id)
-    draft.jd_data = jd_data
-    draft.jd_embedding = jd_embedding
-    draft.job_title = jd_data.role_title
-
-    # ── Gather all profile data ───────────────────────────────
-    profile_skills = [s.skill_name for s in profile.skills]
-    all_bullet_texts = []
-
-    # ── Score Experience Sections ─────────────────────────────
-    scored_exp_sections: list[ScoredSection] = []
-
-    for exp in profile.experience:
-        section_text = f"{exp.role} at {exp.company}"
-        section_emb = embedding_from_json(exp.experience_embedding)
-
-        sec_score = score_section(
-            section_text, section_emb, jd_embedding,
-            jd_data, "experience", exp.end_date,
-        )
-
-        scored_bullets: list[ScoredBullet] = []
-        for bullet in exp.bullets:
-            all_bullet_texts.append(bullet.bullet_text)
-            b_emb = embedding_from_json(bullet.embedding)
-            b_score = score_bullet(
-                bullet.bullet_text, b_emb, jd_embedding,
-                jd_data, "experience", exp.end_date,
-            )
-            scored_bullets.append(ScoredBullet(
-                id=bullet.id, text=bullet.bullet_text,
-                score=b_score, confidence="strong",
-            ))
-
-        # Sort bullets by score, keep top K
-        scored_bullets.sort(key=lambda b: b.score, reverse=True)
-        scored_bullets = scored_bullets[:settings.MAX_BULLETS_PER_SECTION]
-
-        scored_exp_sections.append(ScoredSection(
-            id=exp.id,
-            title=f"{exp.role}",
-            subtitle=f"{exp.company} | {exp.start_date or ''} – {exp.end_date or 'Present'}",
-            section_type="experience",
-            score=sec_score,
-            bullets=scored_bullets,
-        ))
-
-    # Sort and keep top N experience sections
-    scored_exp_sections.sort(key=lambda s: s.score, reverse=True)
-    draft.experience_sections = scored_exp_sections[:settings.MAX_EXPERIENCE_SECTIONS]
-
-    # ── Score Project Sections ────────────────────────────────
-    scored_proj_sections: list[ScoredSection] = []
-
-    for proj in profile.projects:
-        section_text = f"{proj.project_title}: {proj.description or ''}"
-        sec_score = score_section(
-            section_text, None, jd_embedding,
-            jd_data, "project", None,
-        )
-
-        scored_bullets: list[ScoredBullet] = []
-        for bullet in proj.bullets:
-            all_bullet_texts.append(bullet.bullet_text)
-            b_emb = embedding_from_json(bullet.embedding)
-            b_score = score_bullet(
-                bullet.bullet_text, b_emb, jd_embedding,
-                jd_data, "project", None,
-            )
-            scored_bullets.append(ScoredBullet(
-                id=bullet.id, text=bullet.bullet_text,
-                score=b_score, confidence="strong",
-            ))
-
-        scored_bullets.sort(key=lambda b: b.score, reverse=True)
-        scored_bullets = scored_bullets[:settings.MAX_BULLETS_PER_SECTION]
-
-        scored_proj_sections.append(ScoredSection(
-            id=proj.id,
-            title=proj.project_title,
-            subtitle=proj.tech_stack or "",
-            section_type="project",
-            score=sec_score,
-            bullets=scored_bullets,
-        ))
-
-    scored_proj_sections.sort(key=lambda s: s.score, reverse=True)
-    draft.project_sections = scored_proj_sections[:settings.MAX_PROJECT_SECTIONS]
-
-    # ── Select Skills (dedup + limit) ─────────────────────────
-    all_jd_skills = jd_data.must_have_skills + jd_data.nice_to_have_skills
-    selected = []
-    seen = set()
-    # Prioritize JD-matching skills
-    for skill in profile_skills:
-        skill_lower = skill.lower()
-        if skill_lower in seen:
-            continue
-        for jd_skill in all_jd_skills:
-            if jd_skill.lower() in skill_lower or skill_lower in jd_skill.lower():
-                selected.append(skill)
-                seen.add(skill_lower)
-                break
-    # Fill remaining with other profile skills
-    for skill in profile_skills:
-        if skill.lower() not in seen:
-            selected.append(skill)
-            seen.add(skill.lower())
-    draft.selected_skills = selected[:settings.MAX_SKILLS]
-
-    # ── Must-Have Skill Confidence ────────────────────────────
-    for skill in jd_data.must_have_skills:
-        confidence = _check_skill_confidence(
-            skill, profile_skills, all_bullet_texts, jd_embedding,
-        )
-        draft.skill_confidence[skill] = confidence
-
-    # ── Education, Certs, Achievements, etc. ──────────────────
-    draft.education = [
-        {"institution": e.institution, "degree": e.degree,
-         "field_of_study": e.field_of_study or "",
-         "start_year": e.start_year, "end_year": e.end_year,
-         "grade": e.grade or ""}
-        for e in profile.education
+def _bullets(bullets, jd: JDData, jd_embedding: list[float] | None, section_type: str, end_date, limit: int) -> list[dict]:
+    scored = [
+        (b.id, score_bullet(b.bullet_text, embedding_from_json(b.embedding) if jd_embedding else None,
+                            jd_embedding or [], jd, section_type, end_date))
+        for b in bullets
+    ]
+    included = _top_ids(scored, limit)
+    return [
+        {"id": b.id, "text": b.bullet_text, "original_text": b.bullet_text, "score": score,
+         "included": b.id in included, "pinned": False, "user_edited": False}
+        for b, (_, score) in zip(bullets, scored)
     ]
 
-    draft.certifications = [
-        {"name": c.name, "issuing_organization": c.issuing_organization or "",
-         "year": c.year}
-        for c in profile.certifications
-    ]
 
-    draft.achievements = [
-        {"title": a.title, "description": a.description or "",
-         "category": a.category or ""}
-        for a in profile.achievements
-    ]
+def _select_entries(entries: list[dict], limit: int) -> list[dict]:
+    included = _top_ids([(e["id"], e["score"]) for e in entries], limit)
+    for entry in entries:
+        entry["included"] = entry["id"] in included
+    return entries
 
-    if profile.personal_info:
-        pi = profile.personal_info
-        draft.personal_info = {
-            "full_name": pi.full_name,
-            "email": pi.email or "",
-            "phone_number": pi.phone_number or "",
+
+def select_content(profile: Profile, jd: JDData, jd_embedding: list[float] | None, page_target: int = 1) -> dict:
+    max_bullets = settings.MAX_BULLETS_PER_SECTION + (page_target - 1) * 2
+
+    experience = [
+        {
+            "id": exp.id, "title": exp.role,
+            "subtitle": f"{exp.company} | {exp.start_date or ''} – {exp.end_date or 'Present'}",
+            "score": score_section(f"{exp.role} at {exp.company} " + " ".join(b.bullet_text for b in exp.bullets),
+                                   embedding_from_json(exp.experience_embedding) if jd_embedding else None,
+                                   jd_embedding or [], jd, "experience", exp.end_date),
+            "pinned": False,
+            "bullets": _bullets(exp.bullets, jd, jd_embedding, "experience", exp.end_date, max_bullets),
         }
-
-    draft.external_profiles = [
-        {"platform": ep.platform, "profile_url": ep.profile_url}
-        for ep in profile.external_profiles
+        for exp in profile.experience
+    ]
+    projects = [
+        {
+            "id": proj.id, "title": proj.project_title, "subtitle": proj.tech_stack or "",
+            "score": score_section(" ".join([proj.project_title, proj.description or "", proj.tech_stack or ""]
+                                            + [b.bullet_text for b in proj.bullets]),
+                                   None, [], jd, "project", None),
+            "pinned": False,
+            "bullets": _bullets(proj.bullets, jd, jd_embedding, "project", None, max_bullets),
+        }
+        for proj in profile.projects
     ]
 
-    return draft
+    jd_terms = jd.must_have_skills + jd.nice_to_have_skills
+    skills = []
+    for skill in profile.skills:
+        skill_tokens = tokens(skill.skill_name)
+        matches = any(contains_term(skill_tokens, t) or contains_term(tokens(t), skill.skill_name)
+                      for req in jd_terms for t in alternatives(req))
+        skills.append({"id": skill.id, "name": skill.skill_name, "matches_jd": matches})
+    # JD-relevant skills first, then the rest, each group in profile order.
+    skills.sort(key=lambda s: not s["matches_jd"])
+    for i, skill in enumerate(skills):
+        skill["included"] = i < settings.MAX_SKILLS * page_target
+
+    pi = profile.personal_info
+    return {
+        "personal_info": {"full_name": pi.full_name, "email": pi.email or "", "phone_number": pi.phone_number or ""} if pi else None,
+        "external_profiles": [
+            {"id": ep.id, "platform": ep.platform, "profile_url": ep.profile_url, "included": True}
+            for ep in profile.external_profiles
+        ],
+        "education": [
+            {"id": e.id, "institution": e.institution, "degree": e.degree, "field_of_study": e.field_of_study or "",
+             "start_year": e.start_year, "end_year": e.end_year, "end_month": e.end_month,
+             "grade": e.grade or "", "included": True}
+            for e in profile.education
+        ],
+        "experience": _select_entries(experience, settings.MAX_EXPERIENCE_SECTIONS * page_target),
+        "projects": _select_entries(projects, settings.MAX_PROJECT_SECTIONS * page_target),
+        "skills": skills,
+        "certifications": [
+            {"id": c.id, "name": c.name, "issuing_organization": c.issuing_organization or "", "year": c.year, "included": True}
+            for c in profile.certifications
+        ],
+        "achievements": [
+            {"id": a.id, "title": a.title, "description": a.description or "", "category": a.category or "", "included": True}
+            for a in profile.achievements
+        ],
+    }

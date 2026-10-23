@@ -1,55 +1,36 @@
-"""Resume Assembler — builds the final resume structure from a ResumeDraft.
+"""Resume Assembler — builds the final resume structure from approved draft content.
 
-Combines scored sections, rewritten bullets, and ATS optimizations
-into a structured output ready for rendering.
+Only included entries and bullets are kept, in draft order, using each
+bullet's current text (the user's own wording or their edit).
 """
 
 import json
-from app.domain.resume_draft import ResumeDraft
 
 
-def assemble_resume(draft: ResumeDraft) -> dict:
-    """Convert a finalized ResumeDraft into a structured resume dict.
+def _included(items: list[dict]) -> list[dict]:
+    return [item for item in items if item.get("included")]
 
-    This dict is what gets passed to the LaTeX renderer.
-    """
-    resume = {
-        "job_title": draft.job_title,
-        "personal_info": draft.personal_info or {},
-        "external_profiles": draft.external_profiles,
-        "education": draft.education,
-        "experience": [],
-        "projects": [],
-        "skills": draft.selected_skills,
-        "certifications": draft.certifications,
-        "achievements": draft.achievements,
-        "skill_confidence": draft.skill_confidence,
-        "keyword_coverage": draft.keyword_coverage,
+
+def _entries(items: list[dict]) -> list[dict]:
+    return [
+        {"title": e["title"], "subtitle": e["subtitle"], "bullets": [b["text"] for b in _included(e["bullets"])]}
+        for e in _included(items)
+    ]
+
+
+def assemble_resume(content: dict, job_title: str) -> dict:
+    """Convert draft content into the structured dict the PDF and DOCX renderers use."""
+    return {
+        "job_title": job_title,
+        "personal_info": content.get("personal_info") or {},
+        "external_profiles": _included(content["external_profiles"]),
+        "education": _included(content["education"]),
+        "experience": _entries(content["experience"]),
+        "projects": _entries(content["projects"]),
+        "skills": [s["name"] for s in _included(content["skills"])],
+        "certifications": _included(content["certifications"]),
+        "achievements": _included(content["achievements"]),
     }
-
-    # Experience sections
-    for section in draft.experience_sections:
-        entry = {
-            "title": section.title,
-            "subtitle": section.subtitle,
-            "bullets": [
-                b.rewritten_text or b.text for b in section.bullets
-            ],
-        }
-        resume["experience"].append(entry)
-
-    # Project sections
-    for section in draft.project_sections:
-        entry = {
-            "title": section.title,
-            "subtitle": section.subtitle,
-            "bullets": [
-                b.rewritten_text or b.text for b in section.bullets
-            ],
-        }
-        resume["projects"].append(entry)
-
-    return resume
 
 
 def resume_to_sections_json(resume: dict) -> list[dict]:
@@ -88,7 +69,7 @@ def resume_to_sections_json(resume: dict) -> list[dict]:
         sections.append({
             "section_type": "skills",
             "content": json.dumps(resume["skills"]),
-            "confidence_flags": json.dumps(resume.get("skill_confidence", {})),
+            "confidence_flags": None,
         })
 
     if resume.get("certifications"):
