@@ -1,6 +1,6 @@
 """Routes for the signed-in user's profile and its sections."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,12 +17,12 @@ from app.schemas import (
     EducationCreate, EducationOut, EducationUpdate,
     ExperienceCreate, ExperienceOut, ExperienceUpdate,
     ExternalProfileCreate, ExternalProfileOut, ExternalProfileUpdate,
-    PersonalInfoCreate, PersonalInfoOut, ProfileOut,
+    ImportPreview, PersonalInfoCreate, PersonalInfoOut, ProfileImport, ProfileOut,
     ProjectCreate, ProjectOut, ProjectUpdate,
     ReorderRequest,
     SkillCreate, SkillOut, SkillUpdate,
 )
-from app.services import profile_service
+from app.services import import_service, profile_service
 
 router = APIRouter()
 
@@ -37,6 +37,20 @@ def upsert_personal_info(
     payload: PersonalInfoCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db),
 ):
     return profile_service.upsert_personal_info(db, user, payload.model_dump())
+
+
+@router.post("/import", response_model=ImportPreview)
+def import_resume(file: UploadFile = File(...), user: User = Depends(get_current_user)):
+    """Read an uploaded PDF or DOCX into a preview. Nothing is saved until /import/apply."""
+    data = file.file.read(import_service.MAX_UPLOAD_BYTES + 1)
+    mode, warnings, preview = import_service.import_resume(file.filename or "", data)
+    return ImportPreview(mode=mode, warnings=warnings, profile=preview)
+
+
+@router.post("/import/apply", response_model=ProfileOut)
+def apply_import(payload: ProfileImport, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Add the reviewed import to the profile."""
+    return profile_service.apply_import(db, user, payload)
 
 
 def _add_section_routes(
