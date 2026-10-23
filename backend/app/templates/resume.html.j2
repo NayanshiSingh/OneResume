@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ personal_info.full_name or "Resume" }}</title>
+<style>
+  @page { size: A4; margin: 0.6in; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.3; color: #000; }
+  h1 { font-size: 18pt; margin: 0 0 2pt; text-align: center; }
+  .contact { text-align: center; margin-bottom: 6pt; }
+  h2 { font-size: 11.5pt; text-transform: uppercase; border-bottom: 0.75pt solid #000; margin: 10pt 0 4pt; padding-bottom: 1pt; }
+  .entry { margin-bottom: 5pt; }
+  .entry-head { display: flex; justify-content: space-between; }
+  .entry-title { font-weight: bold; }
+  .entry-meta { font-style: italic; }
+  ul { margin: 2pt 0 0 0; padding-left: 14pt; }
+  li { margin-bottom: 1pt; }
+  a { color: #000; text-decoration: none; }
+</style>
+</head>
+<body>
+{% if personal_info %}
+<h1>{{ personal_info.full_name }}</h1>
+<div class="contact">
+  {% set contact = [personal_info.email, personal_info.phone_number] | select | list %}
+  {{ contact | join(" | ") }}
+  {% if external_profiles %}
+  <br>
+  {% for ep in external_profiles %}
+    {% if ep.profile_url is safe_url %}<a href="{{ ep.profile_url }}">{{ ep.platform }}</a>{% else %}{{ ep.platform }}{% endif %}{% if not loop.last %} | {% endif %}
+  {% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+
+{% if education %}
+<h2>Education</h2>
+{% for edu in education %}
+<div class="entry">
+  <div class="entry-head">
+    <span class="entry-title">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</span>
+    <span>{{ [edu.start_year, edu.end_year] | select | join(" - ") }}</span>
+  </div>
+  <div class="entry-head">
+    <span>{{ edu.institution }}</span>
+    {% if edu.grade %}<span>GPA: {{ edu.grade }}</span>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if experience %}
+<h2>Experience</h2>
+{% for exp in experience %}
+<div class="entry">
+  <div class="entry-head">
+    <span class="entry-title">{{ exp.title }}</span>
+    <span class="entry-meta">{{ exp.subtitle }}</span>
+  </div>
+  <ul>{% for bullet in exp.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if projects %}
+<h2>Projects</h2>
+{% for proj in projects %}
+<div class="entry">
+  <div class="entry-head">
+    <span class="entry-title">{{ proj.title }}</span>
+    {% if proj.subtitle %}<span class="entry-meta">{{ proj.subtitle }}</span>{% endif %}
+  </div>
+  <ul>{% for bullet in proj.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if skills %}
+<h2>Skills</h2>
+<p>{{ skills | join(", ") }}</p>
+{% endif %}
+
+{% if certifications %}
+<h2>Certifications</h2>
+{% for cert in certifications %}
+<div class="entry-head">
+  <span><span class="entry-title">{{ cert.name }}</span>{% if cert.issuing_organization %} - {{ cert.issuing_organization }}{% endif %}</span>
+  {% if cert.year %}<span>{{ cert.year }}</span>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if achievements %}
+<h2>Achievements</h2>
+<ul>
+{% for ach in achievements %}
+  <li><span class="entry-title">{{ ach.title }}</span>{% if ach.description %}: {{ ach.description }}{% endif %}</li>
+{% endfor %}
+</ul>
+{% endif %}
+</body>
+</html>

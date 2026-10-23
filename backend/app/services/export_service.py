@@ -1,20 +1,56 @@
-"""Export Service — handles file export (PDF/DOCX) and storage."""
+"""Export Service — renders DOCX files and stores export artifacts privately."""
 
-import os
+import hashlib
+import io
 import logging
 from pathlib import Path
 
 from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.models.resume import ExportArtifact, Resume
+from app.repositories import ArtifactRepo
+from app.services.storage import get_storage
 
 logger = logging.getLogger(__name__)
 
+MEDIA_TYPES = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 
-def export_to_docx(resume_data: dict, output_path: str) -> str:
-    """Export resume data to a DOCX file."""
+
+def _resume_prefix(user_id: str, resume_id: str) -> str:
+    return f"users/{user_id}/resumes/{resume_id}"
+
+
+def store_artifact(db: Session, user_id: str, resume: Resume, format: str, data: bytes) -> ExportArtifact:
+    """Save a rendered file under a key unique to this user, resume, and format."""
+    key = f"{_resume_prefix(user_id, resume.id)}/resume.{format}"
+    get_storage().save(key, data)
+    return ArtifactRepo.create(
+        db, resume_id=resume.id, format=format, storage_key=key,
+        checksum=hashlib.sha256(data).hexdigest(), size_bytes=len(data),
+    )
+
+
+def artifact_path(artifact: ExportArtifact) -> Path:
+    return get_storage().path(artifact.storage_key)
+
+
+def delete_resume_files(user_id: str, resume_id: str) -> None:
+    get_storage().delete_prefix(_resume_prefix(user_id, resume_id))
+
+
+def download_filename(resume: Resume, format: str) -> str:
+    safe_title = "".join(c if c.isalnum() or c in "-_ " else "" for c in resume.job_title).strip() or "Resume"
+    return f"{safe_title.replace(' ', '_')}_v{resume.version}.{format}"
+
+
+def export_to_docx(resume_data: dict) -> bytes:
+    """Render resume data to DOCX bytes."""
     doc = Document()
 
     # Page margins
@@ -109,6 +145,6 @@ def export_to_docx(resume_data: dict, output_path: str) -> str:
                 text += f": {ach['description']}"
             doc.add_paragraph(text, style="List Bullet")
 
-    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-    doc.save(output_path)
-    return output_path
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()
