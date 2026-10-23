@@ -1,15 +1,15 @@
-from app.models.user import User
+from app.models.user import User, UserSession, PasswordResetToken
 from app.models.profile import (
     Profile, Education, Skill, Experience, ExperienceBullet,
     Project, ProjectBullet, Certification, Achievement,
     ExternalProfile, PersonalInfo,
 )
 from app.models.jd import JDAnalysis
-from app.models.resume import Resume, ResumeSection
+from app.models.resume import Resume, ResumeSection, ExportArtifact
 
 __all__ = [
-    "User", "Profile", "Education", "Skill", "Experience",
-    "ExperienceBullet", "Project", "ProjectBullet", "Certification",
-    "Achievement", "ExternalProfile", "PersonalInfo",
-    "JDAnalysis", "Resume", "ResumeSection",
+    "User", "UserSession", "PasswordResetToken", "Profile", "Education",
+    "Skill", "Experience", "ExperienceBullet", "Project", "ProjectBullet",
+    "Certification", "Achievement", "ExternalProfile", "PersonalInfo",
+    "JDAnalysis", "Resume", "ResumeSection", "ExportArtifact",
 ]
