@@ -1,0 +1,83 @@
+{
+  "id": "P5",
+  "persona": {
+    "name": "Jordan Kim",
+    "summary": "Frontend developer with three years of React experience trying to move into backend roles",
+    "background": "Builds React and TypeScript features at a project-management SaaS company and leads accessibility work. Has written a few Node.js backend-for-frontend endpoints and a small Flask side project. Wants backend roles but knows the evidence is thin.",
+    "goals": [
+      "Present the backend work they have honestly",
+      "Understand which backend gaps matter most before applying"
+    ],
+    "frustrations": [
+      "Resume tools make every application look like a perfect match",
+      "Unsure whether to lead with frontend strengths or backend interest"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Backend evidence is limited to BFF endpoints and a Flask side project",
+      "Python is listed and used only in a personal project",
+      "No R, Tableau, Power BI, Django, FastAPI, Docker, or AWS evidence"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Jordan Kim", "email": "jordan.kim@example.com", "phone_number": "+1-555-0105"},
+    "education": [
+      {"id": "P5.edu1", "institution": "Coastline University", "degree": "B.A.", "field_of_study": "Interaction Design", "start_year": 2019, "end_year": 2023, "grade": null}
+    ],
+    "skills": [
+      {"id": "P5.sk1", "skill_name": "JavaScript", "skill_category": "Languages"},
+      {"id": "P5.sk2", "skill_name": "TypeScript", "skill_category": "Languages"},
+      {"id": "P5.sk3", "skill_name": "Python", "skill_category": "Languages"},
+      {"id": "P5.sk4", "skill_name": "React", "skill_category": "Frameworks"},
+      {"id": "P5.sk5", "skill_name": "Redux", "skill_category": "Frameworks"},
+      {"id": "P5.sk6", "skill_name": "Node.js", "skill_category": "Frameworks"},
+      {"id": "P5.sk7", "skill_name": "HTML", "skill_category": "Web"},
+      {"id": "P5.sk8", "skill_name": "CSS", "skill_category": "Web"},
+      {"id": "P5.sk9", "skill_name": "Accessibility", "skill_category": "Web"},
+      {"id": "P5.sk10", "skill_name": "Storybook", "skill_category": "Tools"},
+      {"id": "P5.sk11", "skill_name": "Jest", "skill_category": "Testing"},
+      {"id": "P5.sk12", "skill_name": "React Testing Library", "skill_category": "Testing"},
+      {"id": "P5.sk13", "skill_name": "Git", "skill_category": "Tools"},
+      {"id": "P5.sk14", "skill_name": "Figma", "skill_category": "Tools"}
+    ],
+    "experience": [
+      {
+        "id": "P5.exp1", "company": "Orbitly", "role": "Frontend Developer", "start_date": "2023-08", "end_date": "Present",
+        "bullets": [
+          {"id": "P5.exp1.b1", "bullet_text": "Build React and TypeScript features for a project-management web app with 50k weekly users"},
+          {"id": "P5.exp1.b2", "bullet_text": "Created a Storybook library of 60 components adopted by 4 product teams"},
+          {"id": "P5.exp1.b3", "bullet_text": "Led an accessibility audit and fixed 120 WCAG 2.1 AA issues across the app"},
+          {"id": "P5.exp1.b4", "bullet_text": "Added Node.js backend-for-frontend endpoints that combine three internal REST APIs for the dashboard page"},
+          {"id": "P5.exp1.b5", "bullet_text": "Wrote Jest and React Testing Library tests that raised frontend coverage from 35% to 70%"},
+          {"id": "P5.exp1.b6", "bullet_text": "Migrated global state from Redux to Redux Toolkit across 14 feature modules"}
+        ]
+      },
+      {
+        "id": "P5.exp2", "company": "Brightline Media", "role": "Frontend Intern", "start_date": "2023-01", "end_date": "2023-06",
+        "bullets": [
+          {"id": "P5.exp2.b1", "bullet_text": "Built responsive marketing pages with HTML, CSS, and vanilla JavaScript"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P5.proj1", "project_title": "Recipe Box API", "description": "Personal project to learn backend development", "tech_stack": "Python, Flask, SQLite",
+        "bullets": [
+          {"id": "P5.proj1.b1", "bullet_text": "Built a Flask REST API with SQLite for saving and tagging recipes, with basic pytest tests"}
+        ]
+      },
+      {
+        "id": "P5.proj2", "project_title": "Palette", "description": "Colour-contrast checker browser extension", "tech_stack": "TypeScript",
+        "bullets": [
+          {"id": "P5.proj2.b1", "bullet_text": "Built a browser extension that checks colour contrast against WCAG, with 3,000 installs"}
+        ]
+      }
+    ],
+    "certifications": [],
+    "achievements": [],
+    "external_profiles": [
+      {"id": "P5.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-jordan"},
+      {"id": "P5.ext2", "platform": "Portfolio", "profile_url": "https://jordan.example.com"}
+    ]
+  }
+}

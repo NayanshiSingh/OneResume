@@ -1,0 +1,93 @@
+{
+  "id": "P2",
+  "persona": {
+    "name": "Marcus Bell",
+    "summary": "Bootcamp graduate changing careers after seven years in warehouse operations",
+    "background": "Supervised warehouse shifts for nearly seven years, where he taught himself SQL to build reports. Completed a full-stack bootcamp in 2026 and now works part time as a bootcamp teaching assistant. Applying for junior frontend, full-stack, and support engineering roles.",
+    "goals": [
+      "Show that his operations experience is relevant without overstating his engineering experience",
+      "Get past screens that want professional software experience"
+    ],
+    "frustrations": [
+      "Generic resume tools either hide his operations history or make it sound like engineering",
+      "Worries that '7 years of experience' will be read as software experience"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "His only professional software-adjacent work is SQL reporting and a part-time TA role",
+      "Has JavaScript, not Java",
+      "Operations history is genuinely relevant for support and logistics roles"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Marcus Bell", "email": "marcus.bell@example.com", "phone_number": "+1-555-0102"},
+    "education": [
+      {"id": "P2.edu1", "institution": "Northside Coding Academy", "degree": "Certificate", "field_of_study": "Full-Stack Web Development", "start_year": 2026, "end_year": 2026, "grade": null},
+      {"id": "P2.edu2", "institution": "Ridgeview College", "degree": "B.A.", "field_of_study": "Business Administration", "start_year": 2012, "end_year": 2016, "grade": null}
+    ],
+    "skills": [
+      {"id": "P2.sk1", "skill_name": "JavaScript", "skill_category": "Languages"},
+      {"id": "P2.sk2", "skill_name": "TypeScript", "skill_category": "Languages"},
+      {"id": "P2.sk3", "skill_name": "Python", "skill_category": "Languages"},
+      {"id": "P2.sk4", "skill_name": "SQL", "skill_category": "Languages"},
+      {"id": "P2.sk5", "skill_name": "React", "skill_category": "Frameworks"},
+      {"id": "P2.sk6", "skill_name": "Next.js", "skill_category": "Frameworks"},
+      {"id": "P2.sk7", "skill_name": "Node.js", "skill_category": "Frameworks"},
+      {"id": "P2.sk8", "skill_name": "Express", "skill_category": "Frameworks"},
+      {"id": "P2.sk9", "skill_name": "PostgreSQL", "skill_category": "Databases"},
+      {"id": "P2.sk10", "skill_name": "HTML", "skill_category": "Web"},
+      {"id": "P2.sk11", "skill_name": "CSS", "skill_category": "Web"},
+      {"id": "P2.sk12", "skill_name": "Jest", "skill_category": "Testing"},
+      {"id": "P2.sk13", "skill_name": "Git", "skill_category": "Tools"},
+      {"id": "P2.sk14", "skill_name": "Excel", "skill_category": "Tools"}
+    ],
+    "experience": [
+      {
+        "id": "P2.exp1", "company": "Northside Coding Academy", "role": "Teaching Assistant (part-time)", "start_date": "2026-07", "end_date": "Present",
+        "bullets": [
+          {"id": "P2.exp1.b1", "bullet_text": "Help 20 evening-cohort students debug JavaScript and React assignments during weekly office hours"}
+        ]
+      },
+      {
+        "id": "P2.exp2", "company": "Carrow Distribution", "role": "Operations Supervisor", "start_date": "2019-03", "end_date": "2025-12",
+        "bullets": [
+          {"id": "P2.exp2.b1", "bullet_text": "Supervised a shift team of 14 warehouse associates across receiving and outbound"},
+          {"id": "P2.exp2.b2", "bullet_text": "Wrote SQL queries against the warehouse management system to build weekly on-time-shipment and inventory-accuracy reports for site leadership"},
+          {"id": "P2.exp2.b3", "bullet_text": "Resolved escalated delivery issues with carriers and customers, keeping on-time shipment above 97% for two years"},
+          {"id": "P2.exp2.b4", "bullet_text": "Trained 30+ new associates on scanning devices and the warehouse management system"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P2.proj1", "project_title": "ShiftSwap", "description": "Shift-trading web app for hourly workers", "tech_stack": "TypeScript, React, Node.js, Express, PostgreSQL",
+        "bullets": [
+          {"id": "P2.proj1.b1", "bullet_text": "Built a React and TypeScript front end and an Express REST API for posting and claiming shifts"},
+          {"id": "P2.proj1.b2", "bullet_text": "Designed a PostgreSQL schema with constraints that prevent double-booking"},
+          {"id": "P2.proj1.b3", "bullet_text": "Wrote Jest tests for the API routes and deployed the app on Render"}
+        ]
+      },
+      {
+        "id": "P2.proj2", "project_title": "DockRoute", "description": "Loading-dock scheduling prototype", "tech_stack": "Python, Flask, SQLite",
+        "bullets": [
+          {"id": "P2.proj2.b1", "bullet_text": "Built a Flask app that schedules truck arrivals into dock slots and flags conflicts"},
+          {"id": "P2.proj2.b2", "bullet_text": "Based the scheduling rules on dock operations I managed as a supervisor"}
+        ]
+      },
+      {
+        "id": "P2.proj3", "project_title": "Pantry Tracker", "description": "Inventory tracker for a food bank (volunteer)", "tech_stack": "Next.js, TypeScript",
+        "bullets": [
+          {"id": "P2.proj3.b1", "bullet_text": "Built a Next.js inventory page that 6 volunteers use to log weekly donations"}
+        ]
+      }
+    ],
+    "certifications": [],
+    "achievements": [
+      {"id": "P2.ach1", "title": "Site Safety Award", "description": "Carrow Distribution, 2023", "category": "Professional"}
+    ],
+    "external_profiles": [
+      {"id": "P2.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-marcus"},
+      {"id": "P2.ext2", "platform": "LinkedIn", "profile_url": "https://www.linkedin.com/in/example-marcus"}
+    ]
+  }
+}

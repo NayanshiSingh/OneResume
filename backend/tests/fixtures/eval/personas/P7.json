@@ -1,0 +1,58 @@
+{
+  "id": "P7",
+  "persona": {
+    "name": "Sam Rivera",
+    "summary": "IT support worker with a sparse profile and vague bullets",
+    "background": "Finished an IT associate degree in 2024 and handles IT support and some website work at a small plumbing-supply company. Entered the profile quickly and has not added detail, metrics, or a phone number.",
+    "goals": [
+      "Get a first developer or support engineering job",
+      "Find out what information is missing from the profile"
+    ],
+    "frustrations": [
+      "Does not know how to describe small-company work",
+      "Finds long forms tiring"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Bullets are vague; rewrites must not add technologies, numbers, or outcomes",
+      "No phone number and no external profiles",
+      "The system should ask for detail rather than guess it"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Sam Rivera", "email": "sam.rivera@example.com", "phone_number": null},
+    "education": [
+      {"id": "P7.edu1", "institution": "Pinecrest Community College", "degree": "A.A.S.", "field_of_study": "Information Technology", "start_year": 2022, "end_year": 2024, "grade": null}
+    ],
+    "skills": [
+      {"id": "P7.sk1", "skill_name": "HTML", "skill_category": null},
+      {"id": "P7.sk2", "skill_name": "JavaScript", "skill_category": null},
+      {"id": "P7.sk3", "skill_name": "SQL", "skill_category": null},
+      {"id": "P7.sk4", "skill_name": "Python", "skill_category": null},
+      {"id": "P7.sk5", "skill_name": "Windows", "skill_category": null},
+      {"id": "P7.sk6", "skill_name": "Excel", "skill_category": null}
+    ],
+    "experience": [
+      {
+        "id": "P7.exp1", "company": "Hallett & Sons Plumbing Supply", "role": "IT Support / Junior Developer", "start_date": "2024-06", "end_date": "Present",
+        "bullets": [
+          {"id": "P7.exp1.b1", "bullet_text": "Worked on the company website"},
+          {"id": "P7.exp1.b2", "bullet_text": "Helped with database stuff"},
+          {"id": "P7.exp1.b3", "bullet_text": "Did IT support for staff"},
+          {"id": "P7.exp1.b4", "bullet_text": "Various coding tasks"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P7.proj1", "project_title": "Personal website", "description": null, "tech_stack": "HTML, CSS",
+        "bullets": [
+          {"id": "P7.proj1.b1", "bullet_text": "Made my personal website"}
+        ]
+      }
+    ],
+    "certifications": [],
+    "achievements": [],
+    "external_profiles": []
+  }
+}

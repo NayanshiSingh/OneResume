@@ -1,0 +1,78 @@
+{
+  "id": "P6",
+  "persona": {
+    "name": "Elena Petrova",
+    "summary": "Java developer returning to work after a career break",
+    "background": "Worked five years on an insurance policy system in Java and Spring, then took a career break from September 2021 for family caregiving. Volunteered on a website in 2025, earned an AWS foundational certificate, and built a Spring Boot 3 refresher project in 2026.",
+    "goals": [
+      "Show that her Java experience is still relevant",
+      "Present the break honestly without making it the focus"
+    ],
+    "frustrations": [
+      "Tools rank her five years of Java below a six-month volunteer role because it is older",
+      "Worries that a tool will hide or shift her employment dates"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "The career break is visible only from dates; she has chosen not to add an entry for it",
+      "Dates must be reproduced exactly; no gap explanation may be invented",
+      "Recent Spring Boot 3 work exists only as a personal project"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Elena Petrova", "email": "elena.petrova@example.com", "phone_number": "+1-555-0106"},
+    "education": [
+      {"id": "P6.edu1", "institution": "Eastbrook University", "degree": "B.S.", "field_of_study": "Computer Science", "start_year": 2012, "end_year": 2016, "grade": null}
+    ],
+    "skills": [
+      {"id": "P6.sk1", "skill_name": "Java", "skill_category": "Languages"},
+      {"id": "P6.sk2", "skill_name": "SQL", "skill_category": "Languages"},
+      {"id": "P6.sk3", "skill_name": "JavaScript", "skill_category": "Languages"},
+      {"id": "P6.sk4", "skill_name": "Spring", "skill_category": "Frameworks"},
+      {"id": "P6.sk5", "skill_name": "Spring Boot", "skill_category": "Frameworks"},
+      {"id": "P6.sk6", "skill_name": "JSP", "skill_category": "Frameworks"},
+      {"id": "P6.sk7", "skill_name": "Oracle", "skill_category": "Databases"},
+      {"id": "P6.sk8", "skill_name": "PostgreSQL", "skill_category": "Databases"},
+      {"id": "P6.sk9", "skill_name": "JUnit", "skill_category": "Testing"},
+      {"id": "P6.sk10", "skill_name": "Maven", "skill_category": "Tools"},
+      {"id": "P6.sk11", "skill_name": "Docker", "skill_category": "Tools"},
+      {"id": "P6.sk12", "skill_name": "Git", "skill_category": "Tools"},
+      {"id": "P6.sk13", "skill_name": "AWS", "skill_category": "Cloud"},
+      {"id": "P6.sk14", "skill_name": "HTML", "skill_category": "Web"}
+    ],
+    "experience": [
+      {
+        "id": "P6.exp1", "company": "Riverbend Community Pantry", "role": "Volunteer Web Developer", "start_date": "2025-03", "end_date": "2025-09",
+        "bullets": [
+          {"id": "P6.exp1.b1", "bullet_text": "Rebuilt the pantry's website with HTML, CSS, and JavaScript and added an online volunteer sign-up form"}
+        ]
+      },
+      {
+        "id": "P6.exp2", "company": "Northwind Mutual Insurance", "role": "Software Developer", "start_date": "2016-06", "end_date": "2021-08",
+        "bullets": [
+          {"id": "P6.exp2.b1", "bullet_text": "Developed Java and Spring MVC features for the policy administration system used by 800 agents"},
+          {"id": "P6.exp2.b2", "bullet_text": "Wrote Oracle SQL and PL/SQL for monthly premium reports"},
+          {"id": "P6.exp2.b3", "bullet_text": "Wrote JUnit tests and fixed defects as part of a two-week Scrum team"},
+          {"id": "P6.exp2.b4", "bullet_text": "Built REST endpoints that exposed policy data to a new mobile app"},
+          {"id": "P6.exp2.b5", "bullet_text": "Helped migrate builds from Ant to Maven and Jenkins"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P6.proj1", "project_title": "Bookshelf API", "description": "2026 refresher project on current Java tooling", "tech_stack": "Java 21, Spring Boot 3, PostgreSQL, Docker",
+        "bullets": [
+          {"id": "P6.proj1.b1", "bullet_text": "Built a Spring Boot 3 REST API with PostgreSQL and Flyway migrations, packaged with Docker"},
+          {"id": "P6.proj1.b2", "bullet_text": "Wrote JUnit 5 and Testcontainers integration tests"}
+        ]
+      }
+    ],
+    "certifications": [
+      {"id": "P6.cert1", "name": "AWS Certified Cloud Practitioner", "issuing_organization": "Amazon Web Services", "year": 2026}
+    ],
+    "achievements": [],
+    "external_profiles": [
+      {"id": "P6.ext1", "platform": "LinkedIn", "profile_url": "https://www.linkedin.com/in/example-elena"}
+    ]
+  }
+}
