@@ -262,3 +262,22 @@
     grid-template-columns: 1fr;
   }
 }
+/* ── Sign-in mode links ───────────────────────────────────── */
+.authLinks {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: var(--hairline);
+}
+
+.authLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  color: inherit;
+}
