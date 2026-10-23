@@ -10,32 +10,35 @@ import {
     FileText,
     ArrowLeft,
     LogOut,
+    Upload,
 } from "lucide-react";
 import styles from "./layout.module.css";
+import { useEffect, useState } from "react";
 import { SessionProvider, useSession } from "@/lib/session";
+import { systemApi, type AIStatus } from "@/lib/api";
 
 const NAV_ITEMS = [
     { href: "/dashboard", label: "OVERVIEW", icon: LayoutGrid, tag: "SYS_00" },
     { href: "/dashboard/profile", label: "PROFILE", icon: User, tag: "SYS_01" },
-    {
-        href: "/dashboard/analyze",
-        label: "ANALYZE_JD",
-        icon: FileSearch,
-        tag: "SYS_02",
-    },
-    {
-        href: "/dashboard/generate",
-        label: "GENERATE",
-        icon: Sparkles,
-        tag: "SYS_03",
-    },
-    {
-        href: "/dashboard/resumes",
-        label: "MY_RESUMES",
-        icon: FileText,
-        tag: "SYS_04",
-    },
+    { href: "/dashboard/import", label: "IMPORT_RESUME", icon: Upload, tag: "SYS_02" },
+    { href: "/dashboard/analyze", label: "JOB_DESCRIPTION", icon: FileSearch, tag: "SYS_03" },
+    { href: "/dashboard/drafts", label: "DRAFTS", icon: Sparkles, tag: "SYS_04" },
+    { href: "/dashboard/resumes", label: "MY_RESUMES", icon: FileText, tag: "SYS_05" },
 ];
+
+function AIStatusBanner() {
+    const [status, setStatus] = useState<AIStatus | null>(null);
+    useEffect(() => {
+        systemApi.aiStatus().then(setStatus).catch(() => setStatus(null));
+    }, []);
+    if (!status || (status.llm && status.embeddings)) return null;
+    const off = [!status.llm && "AI analysis and import (Gemini)", !status.embeddings && "semantic matching (Pinecone)"].filter(Boolean);
+    return (
+        <div className={styles.aiBanner} role="status">
+            BASIC MODE: {off.join(" and ")} {off.length > 1 ? "are" : "is"} not configured. Features still work with simpler rules and are labelled.
+        </div>
+    );
+}
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -83,7 +86,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </aside>
 
             {/* ── Main Content ────────────────────────────────────── */}
-            <main className={styles.main}>{children}</main>
+            <main className={styles.main}><AIStatusBanner />{children}</main>
         </div>
     );
 }

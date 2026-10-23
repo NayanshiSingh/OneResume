@@ -118,3 +118,11 @@
         padding: 24px 16px;
     }
 }
+.aiBanner {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #eab308;
+  background: rgba(234, 179, 8, 0.08);
+}
