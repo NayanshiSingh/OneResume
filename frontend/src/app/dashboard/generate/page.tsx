@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
     Sparkles,
     Download,
@@ -10,7 +9,7 @@ import {
     XCircle,
 } from "lucide-react";
 import {
-    profilesApi,
+    profileApi,
     resumesApi,
     type Profile,
     type GenerateResult,
@@ -18,10 +17,6 @@ import {
 import styles from "./page.module.css";
 
 function GenerateContent() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const userId = searchParams.get("user_id");
-
     const [profile, setProfile] = useState<Profile | null>(null);
     const [jdText, setJdText] = useState("");
     const [loading, setLoading] = useState(false);
@@ -30,22 +25,8 @@ function GenerateContent() {
     const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        if (!userId) {
-            router.replace("/");
-            return;
-        }
-        async function load() {
-            try {
-                const p = await profilesApi.getByUser(userId!);
-                setProfile(p);
-            } catch {
-                // no profile
-            } finally {
-                setPageLoading(false);
-            }
-        }
-        load();
-    }, [userId, router]);
+        profileApi.get().then(setProfile).catch((err: unknown) => setError((err as Error).message)).finally(() => setPageLoading(false));
+    }, []);
 
     async function handleGenerate() {
         if (!profile) {
@@ -60,7 +41,7 @@ function GenerateContent() {
         setError("");
         setResult(null);
         try {
-            const r = await resumesApi.generate(profile.id, jdText);
+            const r = await resumesApi.generate(jdText);
             setResult(r);
         } catch (err: unknown) {
             setError((err as Error).message);
@@ -174,22 +155,18 @@ function GenerateContent() {
                                     </span>
                                 </div>
                                 <div className={styles.downloadBtns}>
-                                    <a
-                                        href={resumesApi.downloadUrl(result.resume_id, "pdf")}
-                                        className="btn-primary"
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-                                        <Download size={14} /> PDF
-                                    </a>
-                                    <a
-                                        href={resumesApi.downloadUrl(result.resume_id, "docx")}
-                                        className="btn-outline"
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-                                        <Download size={14} /> DOCX
-                                    </a>
+                                    {result.formats.length === 0 && (
+                                        <span className="mono-label" style={{ color: "#ef4444" }}>NO_FILES_RENDERED</span>
+                                    )}
+                                    {result.formats.map((format) => (
+                                        <a
+                                            key={format}
+                                            href={resumesApi.downloadUrl(result.resume_id, format)}
+                                            className={format === "pdf" ? "btn-primary" : "btn-outline"}
+                                        >
+                                            <Download size={14} /> {format.toUpperCase()}
+                                        </a>
+                                    ))}
                                 </div>
                             </div>
 
@@ -243,9 +220,5 @@ function GenerateContent() {
 }
 
 export default function GeneratePage() {
-    return (
-        <Suspense fallback={<div className="loading-pulse">LOADING...</div>}>
-            <GenerateContent />
-        </Suspense>
-    );
+    return <GenerateContent />;
 }

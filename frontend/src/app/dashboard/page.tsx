@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     User,
@@ -11,41 +10,18 @@ import {
     ArrowRight,
     Activity,
 } from "lucide-react";
-import { usersApi, profilesApi, type User as UserType, type Profile } from "@/lib/api";
+import { profileApi, type Profile } from "@/lib/api";
+import { useSession } from "@/lib/session";
 import styles from "./page.module.css";
 
 function DashboardContent() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const userId = searchParams.get("user_id");
-
-    const [user, setUser] = useState<UserType | null>(null);
+    const { user } = useSession();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!userId) {
-            router.replace("/");
-            return;
-        }
-        async function load() {
-            try {
-                const u = await usersApi.get(userId!);
-                setUser(u);
-                try {
-                    const p = await profilesApi.getByUser(userId!);
-                    setProfile(p);
-                } catch {
-                    // No profile yet
-                }
-            } catch {
-                router.replace("/");
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
-    }, [userId, router]);
+        profileApi.get().then(setProfile).catch(() => setProfile(null)).finally(() => setLoading(false));
+    }, []);
 
     const sectionCount = profile
         ? [
@@ -60,8 +36,6 @@ function DashboardContent() {
         ].reduce((a, b) => a + b, 0)
         : 0;
 
-    const qp = userId ? `?user_id=${userId}` : "";
-
     return (
         <div>
             {/* ── Page Header ──────────────────────────────────────── */}
@@ -69,11 +43,7 @@ function DashboardContent() {
                 <span className="mono-label">DASHBOARD / OVERVIEW</span>
                 <h1 className={`headline ${styles.pageTitle}`}>COMMAND CENTER</h1>
                 <p className="body-text" style={{ marginTop: 8 }}>
-                    {loading
-                        ? "Loading system status..."
-                        : user
-                            ? `Welcome back, ${user.username}. Your AI resume engine is ready.`
-                            : "No user found. Create one in the Profile section to get started."}
+                    {`Welcome back, ${user.email}. Your AI resume engine is ready.`}
                 </p>
             </div>
 
@@ -125,7 +95,7 @@ function DashboardContent() {
                 <span className="mono-label">QUICK_ACTIONS</span>
             </div>
             <div className={styles.actionsGrid}>
-                <Link href={`/dashboard/profile${qp}`} className={styles.actionCard}>
+                <Link href="/dashboard/profile" className={styles.actionCard}>
                     <div className={styles.actionIcon}>
                         <User size={20} />
                     </div>
@@ -138,7 +108,7 @@ function DashboardContent() {
                     <ArrowRight size={16} opacity={0.3} />
                 </Link>
 
-                <Link href={`/dashboard/analyze${qp}`} className={styles.actionCard}>
+                <Link href="/dashboard/analyze" className={styles.actionCard}>
                     <div className={styles.actionIcon}>
                         <FileSearch size={20} />
                     </div>
@@ -151,7 +121,7 @@ function DashboardContent() {
                     <ArrowRight size={16} opacity={0.3} />
                 </Link>
 
-                <Link href={`/dashboard/generate${qp}`} className={styles.actionCard}>
+                <Link href="/dashboard/generate" className={styles.actionCard}>
                     <div className={styles.actionIcon}>
                         <Sparkles size={20} />
                     </div>
@@ -164,7 +134,7 @@ function DashboardContent() {
                     <ArrowRight size={16} opacity={0.3} />
                 </Link>
 
-                <Link href={`/dashboard/resumes${qp}`} className={styles.actionCard}>
+                <Link href="/dashboard/resumes" className={styles.actionCard}>
                     <div className={styles.actionIcon}>
                         <FileText size={20} />
                     </div>
@@ -182,9 +152,5 @@ function DashboardContent() {
 }
 
 export default function DashboardOverview() {
-    return (
-        <Suspense fallback={<div className="loading-pulse">LOADING...</div>}>
-            <DashboardContent />
-        </Suspense>
-    );
+    return <DashboardContent />;
 }
