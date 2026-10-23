@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.errors import ConflictError, InvalidRequestError, NotFoundError, ProviderUnavailableError
-from app.routers import auth, profiles, jd, resumes
+from app.routers import auth, drafts, jobs, profiles, jd, resumes, system
 
 # Schema is managed by Alembic: run `alembic upgrade head` before starting the app.
 
@@ -61,6 +61,9 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Accounts"])
 app.include_router(profiles.router, prefix="/api/profile", tags=["Profile"])
 app.include_router(jd.router, prefix="/api/jd", tags=["Job Descriptions"])
 app.include_router(resumes.router, prefix="/api/resumes", tags=["Resumes"])
+app.include_router(drafts.router, prefix="/api/drafts", tags=["Drafts"])
+app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
+app.include_router(system.router, prefix="/api/system", tags=["System"])
 
 
 @app.get("/", tags=["Health"])

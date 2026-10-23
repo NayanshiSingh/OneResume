@@ -9,41 +9,29 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.repositories import ArtifactRepo, ResumeRepo
-from app.schemas import GenerateOut, ResumeGenerateRequest, ResumeOut
+from app.schemas import ResumeOut
 from app.services.export_service import MEDIA_TYPES, artifact_path, delete_resume_files, download_filename
-from app.services.orchestrator import generate_resume
 
 router = APIRouter()
 
 
-def _to_out(resume) -> ResumeOut:
+def resume_out(resume) -> ResumeOut:
     return ResumeOut(
-        id=resume.id, jd_id=resume.jd_id, job_title=resume.job_title,
+        id=resume.id, jd_id=resume.jd_id, draft_id=resume.draft_id, job_title=resume.job_title,
         version=resume.version, created_at=resume.created_at,
         formats=sorted(a.format for a in resume.artifacts),
     )
 
 
-@router.post("/generate", response_model=GenerateOut, status_code=201)
-def generate(payload: ResumeGenerateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Generate a role-specific resume from a job description.
-
-    This is the main endpoint — runs the full AI pipeline:
-    JD analysis → embeddings → scoring → selection → rewriting →
-    ATS optimization → assembly → rendering.
-    """
-    return generate_resume(db, user, payload.jd_text)
-
-
 @router.get("", response_model=list[ResumeOut])
 def list_resumes(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """List the signed-in user's resumes, newest first."""
-    return [_to_out(r) for r in ResumeRepo.list_owned(db, user.id)]
+    return [resume_out(r) for r in ResumeRepo.list_owned(db, user.id)]
 
 
 @router.get("/{resume_id}", response_model=ResumeOut)
 def get_resume(resume_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return _to_out(ResumeRepo.get_owned(db, user.id, resume_id))
+    return resume_out(ResumeRepo.get_owned(db, user.id, resume_id))
 
 
 @router.get("/{resume_id}/download")

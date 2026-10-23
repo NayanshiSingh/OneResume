@@ -16,8 +16,10 @@ from app.models.resume import ExportArtifact, Resume, ResumeSection
 
 class JDAnalysisRepo:
     @staticmethod
-    def create(db: Session, user_id: str, raw_text: str, structured_data: str, embedding: str = None) -> JDAnalysis:
-        jd = JDAnalysis(user_id=user_id, raw_text=raw_text, structured_data=structured_data, embedding=embedding)
+    def create(db: Session, user_id: str, raw_text: str, structured_data: str,
+               analysis_mode: str, warnings: str) -> JDAnalysis:
+        jd = JDAnalysis(user_id=user_id, raw_text=raw_text, structured_data=structured_data,
+                        analysis_mode=analysis_mode, warnings=warnings)
         db.add(jd)
         db.commit()
         db.refresh(jd)
@@ -45,8 +47,10 @@ class JDAnalysisRepo:
 
 class ResumeRepo:
     @staticmethod
-    def create(db: Session, profile_id: str, jd_id: str, job_title: str, version: int) -> Resume:
-        resume = Resume(profile_id=profile_id, jd_id=jd_id, job_title=job_title, version=version)
+    def create(db: Session, profile_id: str, jd_id: str | None, job_title: str, version: int,
+               draft_id: str, draft_revision: int) -> Resume:
+        resume = Resume(profile_id=profile_id, jd_id=jd_id, job_title=job_title, version=version,
+                        draft_id=draft_id, draft_revision=draft_revision)
         db.add(resume)
         db.commit()
         db.refresh(resume)

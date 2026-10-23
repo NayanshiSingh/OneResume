@@ -8,10 +8,13 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.resume import ExportArtifact, Resume
-from app.repositories import ArtifactRepo
+from app.models.user import User
+from app.repositories import ArtifactRepo, ResumeRepo
+from app.services.pdf_renderer import render_resume_pdf
 from app.services.storage import get_storage
 
 logger = logging.getLogger(__name__)
@@ -34,6 +37,37 @@ def store_artifact(db: Session, user_id: str, resume: Resume, format: str, data:
         db, resume_id=resume.id, format=format, storage_key=key,
         checksum=hashlib.sha256(data).hexdigest(), size_bytes=len(data),
     )
+
+
+VERSION_ATTEMPTS = 3
+
+
+def create_resume_record(db: Session, profile_id: str, jd_id: str | None, job_title: str,
+                         draft_id: str, draft_revision: int) -> Resume:
+    """Create the resume with the next free version, retrying if a concurrent export took it."""
+    for _ in range(VERSION_ATTEMPTS):
+        version = ResumeRepo.get_next_version(db, profile_id, job_title)
+        try:
+            return ResumeRepo.create(db, profile_id=profile_id, jd_id=jd_id, job_title=job_title, version=version,
+                                     draft_id=draft_id, draft_revision=draft_revision)
+        except IntegrityError:
+            db.rollback()
+    raise RuntimeError("Could not allocate a resume version")
+
+
+def render_and_store(db: Session, user: User, resume: Resume, resume_data: dict) -> list[str]:
+    """Render each format; a format that fails is left out rather than mislabelled."""
+    renderers = {"pdf": render_resume_pdf, "docx": export_to_docx}
+    formats = []
+    for format, render in renderers.items():
+        try:
+            data = render(resume_data)
+        except Exception:  # renderer boundary: report the missing format instead of failing the export
+            logger.exception("%s rendering failed for resume %s", format.upper(), resume.id)
+            continue
+        store_artifact(db, user.id, resume, format, data)
+        formats.append(format)
+    return formats
 
 
 def artifact_path(artifact: ExportArtifact) -> Path:
