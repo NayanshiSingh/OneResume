@@ -12,6 +12,7 @@ import {
     type DraftEntry,
     type DraftOp,
     type DraftSection,
+    type LayoutCheck,
     type Resume,
     type ToggleItem,
 } from "@/lib/api";
@@ -143,10 +144,12 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
     const [resume, setResume] = useState<Resume | null>(null);
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
+    const [layout, setLayout] = useState<LayoutCheck | null>(null);
 
     useEffect(() => {
         draftsApi.get(id).then(async (d) => {
             setDraft(d);
+            draftsApi.layout(d.id).then(setLayout).catch(() => setLayout(null));
             if (d.exported_resume_id) setResume(await resumesApi.get(d.exported_resume_id));
         }).catch((err: unknown) => setError((err as Error).message));
     }, [id]);
@@ -167,8 +170,10 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
 
     const apply: Apply = (...ops) => guarded(async () => {
         if (!draft) return;
-        setDraft(await draftsApi.edit(draft.id, draft.revision, ops));
+        const updated = await draftsApi.edit(draft.id, draft.revision, ops);
+        setDraft(updated);
         setResume(null);
+        draftsApi.layout(updated.id).then(setLayout).catch(() => setLayout(null));
     });
 
     const approve = () => guarded(async () => {
@@ -234,6 +239,25 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <aside className={styles.panel}>
+                    {layout?.available && (
+                        <div className={layout.fits ? styles.lengthOk : styles.lengthOver}>
+                            <span className="mono-label">LENGTH: {layout.pages} OF {layout.page_target} PAGE(S)</span>
+                            {!layout.fits && (
+                                <>
+                                    <span>Too long. These bullets help least; hiding a few should make it fit:</span>
+                                    {layout.candidates.map((c) => (
+                                        <div key={c.bullet_id} className={styles.cutRow}>
+                                            <span>{c.text}<span className="mono-label"> {c.entry}{c.covers.length ? ` · covers ${c.covers.join(", ")}` : ""}</span></span>
+                                            <button className="btn-outline btn-sm" disabled={busy}
+                                                onClick={() => apply({ op: "set_included", section: c.section, item_id: c.item_id, bullet_id: c.bullet_id, value: false })}>
+                                                <EyeOff size={12} /> HIDE
+                                            </button>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </div>
+                    )}
                     <span className="mono-label">REQUIREMENTS</span>
                     {missingRequired.length > 0 && (
                         <p style={{ fontSize: 12 }}>{missingRequired.length} required item(s) have no evidence in your profile. The draft does not claim them.</p>
@@ -256,6 +280,7 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
                         <div className={styles.approveBox}>
                             <span className="mono-label">EXPORTED AS VERSION {resume.version}</span>
                             {resume.formats.length === 0 && <span>No files could be rendered.</span>}
+                            {resume.warnings.map((w) => <span key={w}>⚠ {w}</span>)}
                             {resume.formats.map((f) => (
                                 <a key={f} className="btn-primary btn-sm" href={resumesApi.downloadUrl(resume.id, f)}>
                                     <Download size={12} /> {f.toUpperCase()}
