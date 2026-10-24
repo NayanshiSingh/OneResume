@@ -1,9 +1,9 @@
 """Suggested wording for draft bullets, checked before it is offered.
 
-Flow for each draft (two Gemini calls):
-  1. Gemini proposes a rewrite for each included bullet.
+Flow for each draft (two LLM calls):
+  1. The LLM proposes a rewrite for each included bullet.
   2. Deterministic claim checks block anything that adds facts.
-  3. A second Gemini call compares the remaining pairs and blocks meaning drift.
+  3. A second LLM call compares the remaining pairs and blocks meaning drift.
 Only suggestions that pass both are "safe" and can be accepted. Nothing
 replaces the user's wording until they accept it.
 """

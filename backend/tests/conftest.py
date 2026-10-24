@@ -37,13 +37,15 @@ def fake_embed_batch(texts: list[str]) -> list[list[float]]:
 
 
 def _no_live_llm(prompt, schema):
-    raise AssertionError("Tests must not call Gemini; patch generate_json in the module under test")
+    raise AssertionError("Tests must not call a live LLM; patch generate_json in the module under test")
 
 
 @pytest.fixture(autouse=True)
 def offline_environment(monkeypatch, tmp_path):
     """No live AI calls, and generated files go to a temporary directory."""
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "gemini")
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "LLM_API_KEY", "")
     monkeypatch.setattr(settings, "PINECONE_API_KEY", "")
     monkeypatch.setattr(settings, "STORAGE_DIR", str(tmp_path / "storage"))
     monkeypatch.setattr(embedding_service, "_embed_batch", fake_embed_batch)

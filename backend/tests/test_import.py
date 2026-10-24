@@ -137,7 +137,7 @@ class TestImportEndpoints:
 class TestGeminiPath:
     def test_ai_mode_drops_invalid_items(self, client, monkeypatch):
         monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
-        monkeypatch.setattr(import_service, "parse_with_gemini", lambda text: {
+        monkeypatch.setattr(import_service, "parse_with_llm", lambda text: {
             "personal_info": {"full_name": "Priya Raman"},
             "skills": [{"skill_name": "Python"}, {"skill_name": ""}],
             "experience": [{"company": "Ledgerly", "role": "Intern", "bullets": [{"bullet_text": "Built APIs"}]}],
@@ -152,7 +152,7 @@ class TestGeminiPath:
             raise RuntimeError("provider down")
 
         monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
-        monkeypatch.setattr(import_service, "parse_with_gemini", broken)
+        monkeypatch.setattr(import_service, "parse_with_llm", broken)
         preview = client.post("/api/profile/import", files={"file": ("r.docx", _docx(RESUME_TEXT))}).json()
         assert preview["mode"] == "basic"
         assert "AI import failed, so a basic import was used." in preview["warnings"]

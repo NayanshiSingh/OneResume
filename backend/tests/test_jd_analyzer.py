@@ -78,14 +78,14 @@ class TestAnalyzeModes:
 
     def test_ai_mode_and_failure_fallback(self, monkeypatch, sample_jd_text):
         monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
-        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_gemini",
+        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_llm",
                             lambda text: JDData(role_title="Backend", must_have_skills=["Python", "SQL"]))
         assert analyze_jd(sample_jd_text).mode == "ai"
 
         def broken(text):
             raise RuntimeError("provider down")
 
-        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_gemini", broken)
+        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_llm", broken)
         result = analyze_jd(sample_jd_text)
         assert result.mode == "basic"
         assert any("AI analysis failed" in w for w in result.warnings)
@@ -93,7 +93,7 @@ class TestAnalyzeModes:
     def test_gemini_never_sees_injected_text(self, monkeypatch):
         seen = []
         monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
-        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_gemini", lambda text: seen.append(text) or JDData(role_title="x"))
+        monkeypatch.setattr(jd_analyzer, "analyze_jd_with_llm", lambda text: seen.append(text) or JDData(role_title="x"))
         analyze_jd(INJECTED)
         assert "ignore all previous instructions" not in seen[0]
 
@@ -152,6 +152,6 @@ class TestJDReviewAndCoverage:
         assert coverage["Rust"]["label"] == "not_found"
 
     def test_ai_status(self, anon_client, monkeypatch):
-        assert anon_client.get("/api/system/ai-status").json() == {"llm": False, "embeddings": False}
+        assert anon_client.get("/api/system/ai-status").json() == {"llm": False, "llm_provider": "Google Gemini", "embeddings": False}
         monkeypatch.setattr(settings, "PINECONE_API_KEY", "key")
-        assert anon_client.get("/api/system/ai-status").json() == {"llm": False, "embeddings": True}
+        assert anon_client.get("/api/system/ai-status").json() == {"llm": False, "llm_provider": "Google Gemini", "embeddings": True}

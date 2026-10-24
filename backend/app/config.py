@@ -1,5 +1,7 @@
 """Application configuration loaded from environment variables."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
@@ -10,9 +12,20 @@ class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'oneresume.db'}"
 
-    # ── Gemini LLM ────────────────────────────────────────────
+    # ── LLM ───────────────────────────────────────────────────
+    # "gemini" uses the Google SDK; "openai_compatible" calls any OpenAI-style
+    # chat completions API (Groq by default; Ollama, LM Studio, OpenRouter work too).
+    LLM_PROVIDER: Literal["gemini", "openai_compatible"] = "gemini"
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3-flash-preview"
+    LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "openai/gpt-oss-120b"
+    LLM_PROVIDER_NAME: str = "Groq"  # shown to users on the Data & AI page
+    LLM_REASONING_EFFORT: str = "low"  # empty for models without a reasoning setting
+    LLM_STRICT_SCHEMA: bool = True  # constrained decoding; needs a model that supports strict mode
+    LLM_INPUT_PRICE_PER_M: float = 0.0  # USD per 1M tokens; 0 on free plans
+    LLM_OUTPUT_PRICE_PER_M: float = 0.0
 
     # ── Pinecone Embeddings ──────────────────────────────────
     PINECONE_API_KEY: str = ""

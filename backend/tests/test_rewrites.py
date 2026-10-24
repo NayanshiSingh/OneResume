@@ -200,14 +200,11 @@ def test_export_uses_accepted_wording(client, draft_with_suggestions):
 
 # ── Rate limits ──────────────────────────────────────────────
 
-from google.genai import errors as genai_errors
-
 from app.services import llm_client
 
 
 def _rate_limit_error():
-    return genai_errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "quota",
-                                                     "details": [{"retryDelay": "2s"}]}})
+    return llm_client.RateLimited(3.0)
 
 
 def test_background_calls_wait_out_rate_limits(monkeypatch):
@@ -227,5 +224,5 @@ def test_interactive_calls_fail_fast_on_rate_limits(monkeypatch):
     def limited(prompt, schema):
         raise _rate_limit_error()
     monkeypatch.setattr(llm_client, "_generate", limited)
-    with pytest.raises(genai_errors.ClientError):
+    with pytest.raises(llm_client.RateLimited):
         llm_client.generate_json("p", rewrite_service._Rewrites, "rewrite")

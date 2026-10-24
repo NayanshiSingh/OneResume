@@ -4,15 +4,21 @@ from app.config import settings
 
 AI = "ai"
 BASIC = "basic"
+OPENAI_COMPATIBLE = "openai_compatible"
 
 
 def llm_available() -> bool:
-    return bool(settings.GEMINI_API_KEY)
+    key = settings.LLM_API_KEY if settings.LLM_PROVIDER == OPENAI_COMPATIBLE else settings.GEMINI_API_KEY
+    return bool(key)
+
+
+def llm_provider_name() -> str:
+    return settings.LLM_PROVIDER_NAME if settings.LLM_PROVIDER == OPENAI_COMPATIBLE else "Google Gemini"
 
 
 def embeddings_available() -> bool:
     return bool(settings.PINECONE_API_KEY)
 
 
-def status() -> dict[str, bool]:
-    return {"llm": llm_available(), "embeddings": embeddings_available()}
+def status() -> dict:
+    return {"llm": llm_available(), "llm_provider": llm_provider_name(), "embeddings": embeddings_available()}

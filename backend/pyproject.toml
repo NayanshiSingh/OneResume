@@ -25,6 +25,7 @@ dependencies = [
     "email-validator>=2.2",
     "weasyprint>=63",
     "pypdf>=6.20.1,<6.21",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
