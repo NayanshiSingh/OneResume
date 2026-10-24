@@ -356,7 +356,45 @@ class ResumeOut(BaseModel):
     job_title: str
     version: int
     formats: list[str] = []
+    pdf_pages: Optional[int] = None
+    warnings: list[str] = []
+    can_restore: bool
+    sent_at: Optional[datetime] = None
     created_at: datetime
+
+
+class ResumeUpdate(BaseModel):
+    sent_at: Optional[datetime] = None
+
+
+class VersionChange(BaseModel):
+    section: str
+    entry: Optional[str] = None
+    kind: Literal["added_entry", "removed_entry", "added_bullet", "removed_bullet", "added_skill", "removed_skill"]
+    text: str
+
+
+class VersionComparison(BaseModel):
+    from_version: int
+    to_version: int
+    changes: list[VersionChange]
+
+
+class LayoutCandidate(BaseModel):
+    section: str
+    item_id: str
+    bullet_id: str
+    entry: str
+    text: str
+    covers: list[str]
+
+
+class LayoutOut(BaseModel):
+    available: bool
+    pages: Optional[int] = None
+    page_target: int
+    fits: Optional[bool] = None
+    candidates: list[LayoutCandidate]
 
 
 # ═══════════════════════════════════════════════════════════════

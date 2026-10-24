@@ -7,7 +7,9 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.routers.resumes import resume_out
-from app.schemas import ApproveRequest, DraftEditRequest, DraftOut, DraftRequest, DraftSummary, JobOut, ResumeOut
+from app.schemas import (
+    ApproveRequest, DraftEditRequest, DraftOut, DraftRequest, DraftSummary, JobOut, LayoutOut, ResumeOut,
+)
 from app.services import draft_service
 
 router = APIRouter()
@@ -27,6 +29,12 @@ def list_drafts(user: User = Depends(get_current_user), db: Session = Depends(ge
 @router.get("/{draft_id}", response_model=DraftOut)
 def get_draft(draft_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return draft_service.view(draft_service.get_owned(db, user, draft_id))
+
+
+@router.get("/{draft_id}/layout", response_model=LayoutOut)
+def check_layout(draft_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Page count of the current revision, with suggested cuts when it is too long."""
+    return draft_service.layout(draft_service.get_owned(db, user, draft_id))
 
 
 @router.patch("/{draft_id}", response_model=DraftOut)

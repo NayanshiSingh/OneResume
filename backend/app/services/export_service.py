@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import json
 import logging
 from pathlib import Path
 
@@ -11,9 +12,11 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.models.resume import ExportArtifact, Resume
 from app.models.user import User
 from app.repositories import ArtifactRepo, ResumeRepo
+from app.services import output_check
 from app.services.pdf_renderer import render_resume_pdf
 from app.services.storage import get_storage
 
@@ -29,13 +32,14 @@ def _resume_prefix(user_id: str, resume_id: str) -> str:
     return f"users/{user_id}/resumes/{resume_id}"
 
 
-def store_artifact(db: Session, user_id: str, resume: Resume, format: str, data: bytes) -> ExportArtifact:
+def store_artifact(db: Session, user_id: str, resume: Resume, format: str, data: bytes,
+                   page_count: int | None = None) -> ExportArtifact:
     """Save a rendered file under a key unique to this user, resume, and format."""
     key = f"{_resume_prefix(user_id, resume.id)}/resume.{format}"
     get_storage().save(key, data)
     return ArtifactRepo.create(
         db, resume_id=resume.id, format=format, storage_key=key,
-        checksum=hashlib.sha256(data).hexdigest(), size_bytes=len(data),
+        checksum=hashlib.sha256(data).hexdigest(), size_bytes=len(data), page_count=page_count,
     )
 
 
@@ -55,23 +59,45 @@ def create_resume_record(db: Session, profile_id: str, jd_id: str | None, job_ti
     raise RuntimeError("Could not allocate a resume version")
 
 
-def render_and_store(db: Session, user: User, resume: Resume, resume_data: dict) -> list[str]:
-    """Render each format; a format that fails is left out rather than mislabelled."""
+def render_and_store(db: Session, user: User, resume: Resume, resume_data: dict, page_target: int = 1) -> list[str]:
+    """Render, read back, and store each format.
+
+    A format that fails to render, or whose text does not read back as the
+    approved content, is left out rather than offered. Problems and page
+    overflow are recorded on the resume as warnings.
+    """
     renderers = {"pdf": render_resume_pdf, "docx": export_to_docx}
-    formats = []
+    formats, warnings = [], []
     for format, render in renderers.items():
+        label = format.upper()
         try:
             data = render(resume_data)
+            check = output_check.verify(format, data, resume_data)
         except Exception:  # renderer boundary: report the missing format instead of failing the export
-            logger.exception("%s rendering failed for resume %s", format.upper(), resume.id)
+            logger.exception("%s rendering failed for resume %s", label, resume.id)
+            warnings.append(f"The {label} could not be created, so only the other format is available.")
             continue
-        store_artifact(db, user.id, resume, format, data)
+        if not check.ok:
+            logger.error("%s for resume %s failed the read-back check: %s", label, resume.id, check)
+            problem = "comes out in the wrong order" if check.out_of_order else f"is missing: {', '.join(check.missing[:3])}"
+            warnings.append(f"The {label} was not offered because its text {problem}.")
+            continue
+        if check.pages and check.pages > page_target:
+            warnings.append(f"The {label} is {check.pages} pages; your target was {page_target}.")
+        store_artifact(db, user.id, resume, format, data, check.pages)
         formats.append(format)
+    resume.warnings = json.dumps(warnings)
+    db.commit()
     return formats
 
 
 def artifact_path(artifact: ExportArtifact) -> Path:
-    return get_storage().path(artifact.storage_key)
+    """Path to a stored file, after checking it still matches what was exported."""
+    path = get_storage().path(artifact.storage_key)
+    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != artifact.checksum:
+        logger.error("Stored %s for resume %s is missing or changed", artifact.format, artifact.resume_id)
+        raise NotFoundError("This file is no longer available. Export the draft again.")
+    return path
 
 
 def delete_resume_files(user_id: str, resume_id: str) -> None:

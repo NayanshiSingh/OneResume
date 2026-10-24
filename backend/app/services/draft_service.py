@@ -20,7 +20,9 @@ from app.repositories import JDAnalysisRepo, ResumeRepo
 from app.services import evidence_service, job_service, profile_service, rewrite_service
 from app.services.ai_status import AI, BASIC, embeddings_available
 from app.services.embedding_service import embedding_from_json, embedding_to_json, generate_embedding, generate_embeddings
+from app.services import output_check
 from app.services.export_service import create_resume_record, render_and_store
+from app.services.pdf_renderer import render_resume_pdf
 from app.services.jd_service import structured
 from app.services.relevance_selector import select_content
 from app.services.resume_assembler import assemble_resume, resume_to_sections_json
@@ -249,12 +251,47 @@ def export(db: Session, user: User, draft_id: str) -> Resume:
 
     resume_data = assemble_resume(json.loads(draft.content), draft.job_title)
     resume = create_resume_record(db, draft.profile_id, draft.jd_id, draft.job_title, draft.id, draft.revision)
-    render_and_store(db, user, resume, resume_data)
+    resume.content_snapshot = draft.content
+    render_and_store(db, user, resume, resume_data, draft.page_target)
     for section in resume_to_sections_json(resume_data):
         ResumeRepo.add_section(db, resume.id, section_type=section["section_type"],
                                content=section["content"], confidence_flags=section.get("confidence_flags"))
     db.refresh(resume)
     return resume
+
+
+MAX_REMOVAL_CANDIDATES = 5
+
+
+def layout(draft: Draft) -> dict:
+    """Render the current revision to count pages; when it overflows, suggest what to cut.
+
+    Candidates are included, unpinned bullets, least useful first: bullets that
+    support no requirement come before ones that do, then lower relevance first.
+    """
+    content = json.loads(draft.content)
+    try:
+        _, pages = output_check.extract_pdf(render_resume_pdf(assemble_resume(content, draft.job_title)))
+    except Exception:  # renderer boundary: the length check is optional
+        logger.exception("Layout check failed for draft %s", draft.id)
+        return {"available": False, "pages": None, "page_target": draft.page_target, "fits": None, "candidates": []}
+
+    covers: dict[str, list[str]] = {}
+    for item in json.loads(draft.coverage):
+        for evidence in item["evidence"]:
+            covers.setdefault(evidence["id"], []).append(item["requirement"])
+    candidates = sorted(
+        (
+            {"section": section, "item_id": entry["id"], "bullet_id": b["id"], "entry": entry["title"],
+             "text": b["text"], "covers": covers.get(b["id"], []), "score": b["score"]}
+            for section in sorted(BULLET_SECTIONS) for entry in content[section] if entry["included"]
+            for b in entry["bullets"] if b["included"] and not b["pinned"] and not entry["pinned"]
+        ),
+        key=lambda c: (bool(c["covers"]), c["score"]),
+    )
+    fits = pages <= draft.page_target
+    return {"available": True, "pages": pages, "page_target": draft.page_target, "fits": fits,
+            "candidates": [] if fits else candidates[:MAX_REMOVAL_CANDIDATES]}
 
 
 def delete(db: Session, user: User, draft_id: str) -> None:

@@ -293,7 +293,30 @@ export interface Resume {
     job_title: string;
     version: number;
     formats: ExportFormat[];
+    pdf_pages?: number | null;
+    warnings: string[];
+    can_restore: boolean;
+    sent_at?: string | null;
     created_at: string;
+}
+
+export interface VersionComparison {
+    from_version: number;
+    to_version: number;
+    changes: {
+        section: string;
+        entry?: string | null;
+        kind: "added_entry" | "removed_entry" | "added_bullet" | "removed_bullet" | "added_skill" | "removed_skill";
+        text: string;
+    }[];
+}
+
+export interface LayoutCheck {
+    available: boolean;
+    pages?: number | null;
+    page_target: number;
+    fits?: boolean | null;
+    candidates: { section: DraftSection; item_id: string; bullet_id: string; entry: string; text: string; covers: string[] }[];
 }
 
 /* ── Accounts ───────────────────────────────────────────────── */
@@ -367,6 +390,7 @@ export const draftsApi = {
     edit: (id: string, revision: number, ops: DraftOp[]) => send<Draft>("PATCH", `/api/drafts/${id}`, { revision, ops }),
     approve: (id: string, revision: number) => send<Draft>("POST", `/api/drafts/${id}/approve`, { revision }),
     export: (id: string) => send<Resume>("POST", `/api/drafts/${id}/export`),
+    layout: (id: string) => request<LayoutCheck>(`/api/drafts/${id}/layout`),
     delete: (id: string) => send<void>("DELETE", `/api/drafts/${id}`),
 };
 
@@ -381,5 +405,8 @@ export const resumesApi = {
     list: () => request<Resume[]>("/api/resumes"),
     get: (id: string) => request<Resume>(`/api/resumes/${id}`),
     delete: (id: string) => send<void>("DELETE", `/api/resumes/${id}`),
+    setSent: (id: string, sentAt: string | null) => send<Resume>("PATCH", `/api/resumes/${id}`, { sent_at: sentAt }),
+    compare: (id: string, otherId: string) => request<VersionComparison>(`/api/resumes/${id}/compare/${otherId}`),
+    restore: (id: string) => send<Draft>("POST", `/api/resumes/${id}/restore`),
     downloadUrl: (id: string, format: ExportFormat) => `/api/resumes/${id}/download?format=${format}`,
 };

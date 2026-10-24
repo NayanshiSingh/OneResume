@@ -200,3 +200,25 @@
   border: 1px solid #16a34a;
   font-size: 13px;
 }
+
+/* ── Length check ─────────────────────────────────────────── */
+.lengthOk,
+.lengthOver {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  font-size: 12px;
+  border: 1px solid #16a34a;
+}
+
+.lengthOver {
+  border-color: #dc2626;
+}
+
+.cutRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}

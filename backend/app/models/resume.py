@@ -21,6 +21,9 @@ class Resume(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     draft_id: Mapped[str | None] = mapped_column(ForeignKey("drafts.id", ondelete="SET NULL"), nullable=True, index=True)
     draft_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    content_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON: draft content at export
+    warnings: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of export problems
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -59,6 +62,7 @@ class ExportArtifact(Base):
     storage_key: Mapped[str] = mapped_column(String(500), unique=True)
     checksum: Mapped[str] = mapped_column(String(64))  # sha256 hex
     size_bytes: Mapped[int] = mapped_column(Integer)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)  # PDF only
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
