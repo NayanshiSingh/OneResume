@@ -1,0 +1,84 @@
+{
+  "id": "P8",
+  "persona": {
+    "name": "Alex Chen",
+    "summary": "Recent graduate whose profile contains inflated and ambiguous claims",
+    "background": "Graduated in 2025 after co-founding a three-person student startup, where they gave themselves the title Lead Engineer. Now works on backend services at a fintech company. Lists many technologies in the skills section without describing using them.",
+    "goals": [
+      "Get senior-sounding roles quickly",
+      "Make the resume sound as impressive as possible"
+    ],
+    "frustrations": [
+      "Feels under-levelled",
+      "Thinks resume tools are too cautious"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Kafka, Rust, Machine Learning, and Blockchain are listed in skills with little or no supporting experience",
+      "'Helped the team with the Kubernetes deployment' is assistance, not ownership",
+      "'Serving millions of requests' has no time frame or source; it must not be strengthened",
+      "'Expert-level AI model' is a self-description, not evidence",
+      "The Lead Engineer title is the user's own and should be kept as written, not amplified"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Alex Chen", "email": "alex.chen@example.com", "phone_number": "+1-555-0108"},
+    "education": [
+      {"id": "P8.edu1", "institution": "Summit State University", "degree": "B.S.", "field_of_study": "Computer Science", "start_year": 2021, "end_year": 2025, "grade": null}
+    ],
+    "skills": [
+      {"id": "P8.sk1", "skill_name": "Python", "skill_category": null},
+      {"id": "P8.sk2", "skill_name": "JavaScript", "skill_category": null},
+      {"id": "P8.sk3", "skill_name": "Go", "skill_category": null},
+      {"id": "P8.sk4", "skill_name": "Rust", "skill_category": null},
+      {"id": "P8.sk5", "skill_name": "React", "skill_category": null},
+      {"id": "P8.sk6", "skill_name": "Node.js", "skill_category": null},
+      {"id": "P8.sk7", "skill_name": "Kubernetes", "skill_category": null},
+      {"id": "P8.sk8", "skill_name": "Kafka", "skill_category": null},
+      {"id": "P8.sk9", "skill_name": "Docker", "skill_category": null},
+      {"id": "P8.sk10", "skill_name": "AWS", "skill_category": null},
+      {"id": "P8.sk11", "skill_name": "Machine Learning", "skill_category": null},
+      {"id": "P8.sk12", "skill_name": "Blockchain", "skill_category": null},
+      {"id": "P8.sk13", "skill_name": "Git", "skill_category": null},
+      {"id": "P8.sk14", "skill_name": "Linux", "skill_category": null}
+    ],
+    "experience": [
+      {
+        "id": "P8.exp1", "company": "Fintrail", "role": "Software Engineer", "start_date": "2025-07", "end_date": "Present",
+        "bullets": [
+          {"id": "P8.exp1.b1", "bullet_text": "Work on backend services in Python"},
+          {"id": "P8.exp1.b2", "bullet_text": "Responsible for AI initiatives"},
+          {"id": "P8.exp1.b3", "bullet_text": "Participated in an on-call rotation"}
+        ]
+      },
+      {
+        "id": "P8.exp2", "company": "Quorra (student startup, 3 people)", "role": "Lead Engineer", "start_date": "2023-09", "end_date": "2025-05",
+        "bullets": [
+          {"id": "P8.exp2.b1", "bullet_text": "Architected a scalable microservices platform serving millions of requests"},
+          {"id": "P8.exp2.b2", "bullet_text": "Built the React front end and Node.js API for a campus marketplace app"},
+          {"id": "P8.exp2.b3", "bullet_text": "Helped the team with the Kubernetes deployment on a cloud free tier"},
+          {"id": "P8.exp2.b4", "bullet_text": "Managed the team's AWS account and Docker builds"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P8.proj1", "project_title": "ChainVote", "description": "Blockchain voting app (hackathon)", "tech_stack": "Solidity, JavaScript",
+        "bullets": [
+          {"id": "P8.proj1.b1", "bullet_text": "Built a voting prototype on an Ethereum test network during a 24-hour hackathon"}
+        ]
+      },
+      {
+        "id": "P8.proj2", "project_title": "Stock Predictor", "description": null, "tech_stack": "Python",
+        "bullets": [
+          {"id": "P8.proj2.b1", "bullet_text": "Expert-level AI model that predicts stock prices"}
+        ]
+      }
+    ],
+    "certifications": [],
+    "achievements": [],
+    "external_profiles": [
+      {"id": "P8.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-alex"}
+    ]
+  }
+}
