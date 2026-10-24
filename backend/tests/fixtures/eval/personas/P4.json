@@ -1,0 +1,113 @@
+{
+  "id": "P4",
+  "persona": {
+    "name": "Sofia Lindqvist",
+    "summary": "Full-stack engineer with about five years of experience and far more material than fits on one page",
+    "background": "Works on a healthcare scheduling product in React, TypeScript, Node.js, and GraphQL. Previously built Rails subscription features at a retailer, and started with a web development internship at an agency. Applying for full-stack, frontend, QA-adjacent, and Rails roles.",
+    "goals": [
+      "Keep a one-page resume while choosing the right bullets for each role",
+      "Bring older Rails work forward for Rails roles"
+    ],
+    "frustrations": [
+      "Cutting good bullets by hand for every application",
+      "Older but relevant experience gets buried below recent work"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Has 16 experience bullets; a one-page draft cannot include them all",
+      "Rails experience is 1 year 9 months, close to but below a 2-year threshold",
+      "Mentoring is real but she has never had a formal lead title"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Sofia Lindqvist", "email": "sofia.lindqvist@example.com", "phone_number": "+1-555-0104"},
+    "education": [
+      {"id": "P4.edu1", "institution": "Northgate University", "degree": "B.S.", "field_of_study": "Computer Science", "start_year": 2017, "end_year": 2021, "grade": null}
+    ],
+    "skills": [
+      {"id": "P4.sk1", "skill_name": "JavaScript", "skill_category": "Languages"},
+      {"id": "P4.sk2", "skill_name": "TypeScript", "skill_category": "Languages"},
+      {"id": "P4.sk3", "skill_name": "Ruby", "skill_category": "Languages"},
+      {"id": "P4.sk4", "skill_name": "PHP", "skill_category": "Languages"},
+      {"id": "P4.sk5", "skill_name": "React", "skill_category": "Frameworks"},
+      {"id": "P4.sk6", "skill_name": "Next.js", "skill_category": "Frameworks"},
+      {"id": "P4.sk7", "skill_name": "Node.js", "skill_category": "Frameworks"},
+      {"id": "P4.sk8", "skill_name": "Ruby on Rails", "skill_category": "Frameworks"},
+      {"id": "P4.sk9", "skill_name": "GraphQL", "skill_category": "APIs"},
+      {"id": "P4.sk10", "skill_name": "PostgreSQL", "skill_category": "Databases"},
+      {"id": "P4.sk11", "skill_name": "MySQL", "skill_category": "Databases"},
+      {"id": "P4.sk12", "skill_name": "Redis", "skill_category": "Databases"},
+      {"id": "P4.sk13", "skill_name": "AWS", "skill_category": "Cloud"},
+      {"id": "P4.sk14", "skill_name": "Docker", "skill_category": "Tools"},
+      {"id": "P4.sk15", "skill_name": "Jest", "skill_category": "Testing"},
+      {"id": "P4.sk16", "skill_name": "Cypress", "skill_category": "Testing"},
+      {"id": "P4.sk17", "skill_name": "RSpec", "skill_category": "Testing"},
+      {"id": "P4.sk18", "skill_name": "HTML", "skill_category": "Web"},
+      {"id": "P4.sk19", "skill_name": "CSS", "skill_category": "Web"},
+      {"id": "P4.sk20", "skill_name": "Git", "skill_category": "Tools"}
+    ],
+    "experience": [
+      {
+        "id": "P4.exp1", "company": "Brightpath Health", "role": "Full-Stack Engineer", "start_date": "2023-03", "end_date": "Present",
+        "bullets": [
+          {"id": "P4.exp1.b1", "bullet_text": "Lead development of the patient appointment-booking flow in React, TypeScript, and Node.js, used by 120 clinics"},
+          {"id": "P4.exp1.b2", "bullet_text": "Designed a GraphQL API over PostgreSQL that replaced 30 REST endpoints for the patient portal"},
+          {"id": "P4.exp1.b3", "bullet_text": "Built HIPAA audit logging for patient-record access, reviewed and approved by the compliance team"},
+          {"id": "P4.exp1.b4", "bullet_text": "Cut the patient portal bundle size by 38% by code-splitting routes and removing unused dependencies"},
+          {"id": "P4.exp1.b5", "bullet_text": "Introduced Cypress end-to-end tests for booking and messaging that caught 11 regressions before release in the first quarter"},
+          {"id": "P4.exp1.b6", "bullet_text": "Mentor two junior engineers through weekly pairing and code review"},
+          {"id": "P4.exp1.b7", "bullet_text": "Moved scheduled reminder jobs to AWS Lambda and EventBridge, reducing server costs by about $1,400 per month"}
+        ]
+      },
+      {
+        "id": "P4.exp2", "company": "Mapleleaf Retail", "role": "Software Engineer", "start_date": "2021-06", "end_date": "2023-02",
+        "bullets": [
+          {"id": "P4.exp2.b1", "bullet_text": "Built subscription billing features in a Ruby on Rails monolith integrated with Stripe"},
+          {"id": "P4.exp2.b2", "bullet_text": "Optimized MySQL queries for the order history page, cutting load time from 4.1s to 0.9s"},
+          {"id": "P4.exp2.b3", "bullet_text": "Wrote RSpec and Jest tests that raised checkout test coverage from 52% to 80%"},
+          {"id": "P4.exp2.b4", "bullet_text": "Migrated the product listing pages from jQuery to React"},
+          {"id": "P4.exp2.b5", "bullet_text": "Added Sidekiq background jobs for order confirmation emails"}
+        ]
+      },
+      {
+        "id": "P4.exp3", "company": "Pixelworks Agency", "role": "Web Development Intern", "start_date": "2021-01", "end_date": "2021-05",
+        "bullets": [
+          {"id": "P4.exp3.b1", "bullet_text": "Built and maintained WordPress sites in PHP for 15 small-business clients"},
+          {"id": "P4.exp3.b2", "bullet_text": "Created custom JavaScript and jQuery interactions from agency designs"},
+          {"id": "P4.exp3.b3", "bullet_text": "Handled client support requests and site updates"},
+          {"id": "P4.exp3.b4", "bullet_text": "Raised Lighthouse accessibility scores on client sites to 90 or above"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P4.proj1", "project_title": "Trailhead", "description": "Hiking trip planner", "tech_stack": "Next.js, TypeScript, Mapbox",
+        "bullets": [
+          {"id": "P4.proj1.b1", "bullet_text": "Built a trip planner with offline maps that has 2,300 monthly active users"}
+        ]
+      },
+      {
+        "id": "P4.proj2", "project_title": "a11y-lint-action", "description": "GitHub Action that runs accessibility checks on pull requests", "tech_stack": "TypeScript, GitHub Actions, axe-core",
+        "bullets": [
+          {"id": "P4.proj2.b1", "bullet_text": "Published a GitHub Action that runs axe-core checks on preview deployments, used by 40 public repositories"}
+        ]
+      },
+      {
+        "id": "P4.proj3", "project_title": "Ledger CLI", "description": "Command-line budgeting tool", "tech_stack": "Ruby",
+        "bullets": [
+          {"id": "P4.proj3.b1", "bullet_text": "Wrote a command-line budgeting tool in Ruby that imports bank CSV exports"}
+        ]
+      }
+    ],
+    "certifications": [
+      {"id": "P4.cert1", "name": "AWS Certified Developer - Associate", "issuing_organization": "Amazon Web Services", "year": 2023}
+    ],
+    "achievements": [
+      {"id": "P4.ach1", "title": "Meetup speaker", "description": "Talk on accessible forms at a local JavaScript meetup, 2024", "category": "Community"}
+    ],
+    "external_profiles": [
+      {"id": "P4.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-sofia"},
+      {"id": "P4.ext2", "platform": "LinkedIn", "profile_url": "https://www.linkedin.com/in/example-sofia"}
+    ]
+  }
+}

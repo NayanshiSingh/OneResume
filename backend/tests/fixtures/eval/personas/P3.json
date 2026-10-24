@@ -1,0 +1,88 @@
+{
+  "id": "P3",
+  "persona": {
+    "name": "Daniel Okafor",
+    "summary": "Backend engineer with about two years of Python experience on AWS",
+    "background": "Joined a logistics SaaS company after graduating in 2024 and owns several FastAPI services. Did a Java internship at a bank before that. Applying for backend and platform roles, and occasionally DevOps or data roles.",
+    "goals": [
+      "Emphasise different parts of the same job for backend, DevOps, and data roles",
+      "Avoid being filtered out for missing Kubernetes or Kafka when he has related experience"
+    ],
+    "frustrations": [
+      "Rewriting the same six bullets for each application",
+      "Tools that add technologies he has never used"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Has SQS and Celery, not Kafka or Airflow",
+      "No Kubernetes evidence; ECS is related but different",
+      "About 2 years 3 months of professional experience as of October 2026"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Daniel Okafor", "email": "daniel.okafor@example.com", "phone_number": "+1-555-0103"},
+    "education": [
+      {"id": "P3.edu1", "institution": "Riverside Institute of Technology", "degree": "B.S.", "field_of_study": "Computer Science", "start_year": 2020, "end_year": 2024, "grade": "3.5"}
+    ],
+    "skills": [
+      {"id": "P3.sk1", "skill_name": "Python", "skill_category": "Languages"},
+      {"id": "P3.sk2", "skill_name": "Java", "skill_category": "Languages"},
+      {"id": "P3.sk3", "skill_name": "SQL", "skill_category": "Languages"},
+      {"id": "P3.sk4", "skill_name": "FastAPI", "skill_category": "Frameworks"},
+      {"id": "P3.sk5", "skill_name": "Flask", "skill_category": "Frameworks"},
+      {"id": "P3.sk6", "skill_name": "Spring Boot", "skill_category": "Frameworks"},
+      {"id": "P3.sk7", "skill_name": "Celery", "skill_category": "Frameworks"},
+      {"id": "P3.sk8", "skill_name": "PostgreSQL", "skill_category": "Databases"},
+      {"id": "P3.sk9", "skill_name": "Redis", "skill_category": "Databases"},
+      {"id": "P3.sk10", "skill_name": "AWS", "skill_category": "Cloud"},
+      {"id": "P3.sk11", "skill_name": "Docker", "skill_category": "Tools"},
+      {"id": "P3.sk12", "skill_name": "Terraform", "skill_category": "Tools"},
+      {"id": "P3.sk13", "skill_name": "GitHub Actions", "skill_category": "Tools"},
+      {"id": "P3.sk14", "skill_name": "pytest", "skill_category": "Testing"},
+      {"id": "P3.sk15", "skill_name": "Git", "skill_category": "Tools"},
+      {"id": "P3.sk16", "skill_name": "Linux", "skill_category": "Tools"},
+      {"id": "P3.sk17", "skill_name": "Sentry", "skill_category": "Tools"}
+    ],
+    "experience": [
+      {
+        "id": "P3.exp1", "company": "Parcelpoint", "role": "Backend Engineer", "start_date": "2024-07", "end_date": "Present",
+        "bullets": [
+          {"id": "P3.exp1.b1", "bullet_text": "Build and maintain 12 FastAPI services for shipment tracking, handling about 3M API requests per day"},
+          {"id": "P3.exp1.b2", "bullet_text": "Cut p95 latency of the tracking API from 820ms to 240ms by adding Redis caching and rewriting two PostgreSQL queries"},
+          {"id": "P3.exp1.b3", "bullet_text": "Moved nightly label generation to Celery workers on AWS ECS with SQS, removing a 40-minute batch window"},
+          {"id": "P3.exp1.b4", "bullet_text": "Wrote Terraform modules for SQS queues and IAM roles used by three teams"},
+          {"id": "P3.exp1.b5", "bullet_text": "Set up GitHub Actions pipelines that run pytest and deploy Docker images to ECS"},
+          {"id": "P3.exp1.b6", "bullet_text": "Take part in the weekly on-call rotation and wrote 5 incident reviews using Sentry and CloudWatch data"}
+        ]
+      },
+      {
+        "id": "P3.exp2", "company": "Granite Trust Bank", "role": "Software Engineering Intern", "start_date": "2023-06", "end_date": "2023-08",
+        "bullets": [
+          {"id": "P3.exp2.b1", "bullet_text": "Added two REST endpoints to a Java Spring Boot account-statements service, with JUnit tests"},
+          {"id": "P3.exp2.b2", "bullet_text": "Fixed 15 backlog bugs in a legacy Oracle-backed reporting service"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P3.proj1", "project_title": "Open-source contribution: retry library", "description": "Contribution to an open-source Python HTTP retry library", "tech_stack": "Python",
+        "bullets": [
+          {"id": "P3.proj1.b1", "bullet_text": "Contributed exponential backoff with jitter to an open-source Python HTTP retry library; merged after maintainer review"}
+        ]
+      },
+      {
+        "id": "P3.proj2", "project_title": "ratelimitd", "description": "Token-bucket rate limiter service", "tech_stack": "Go, Redis",
+        "bullets": [
+          {"id": "P3.proj2.b1", "bullet_text": "Wrote a rate-limiting service in Go backed by Redis, load-tested locally to 20k requests per second"}
+        ]
+      }
+    ],
+    "certifications": [
+      {"id": "P3.cert1", "name": "AWS Certified Developer - Associate", "issuing_organization": "Amazon Web Services", "year": 2025}
+    ],
+    "achievements": [],
+    "external_profiles": [
+      {"id": "P3.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-daniel"}
+    ]
+  }
+}

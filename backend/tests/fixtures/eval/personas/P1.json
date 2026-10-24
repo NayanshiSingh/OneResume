@@ -1,0 +1,102 @@
+{
+  "id": "P1",
+  "persona": {
+    "name": "Priya Raman",
+    "summary": "Final-year CS student with one internship, a TA role, and several projects",
+    "background": "Studying Computer Science at a state university, expected to graduate in May 2027. Completed a summer 2026 internship at a fintech company and works as a teaching assistant. Has more projects than fit on one page and applies to new-grad, internship-conversion, ML, and embedded roles.",
+    "goals": [
+      "Pick the projects that best fit each role without rewriting her resume every time",
+      "Apply to 40+ new-grad roles this cycle"
+    ],
+    "frustrations": [
+      "Keeps several resume copies and loses track of which one she sent",
+      "Unsure whether course projects belong on a resume"
+    ],
+    "page_target": 1,
+    "evaluator_notes": [
+      "Graduation month is not stored; the profile only shows end_year 2027",
+      "Has C but not C# or C++; embedded roles need RTOS and microcontroller evidence she does not have"
+    ]
+  },
+  "profile": {
+    "personal_info": {"full_name": "Priya Raman", "email": "priya.raman@example.com", "phone_number": "+1-555-0101"},
+    "education": [
+      {"id": "P1.edu1", "institution": "Lakeshore State University", "degree": "B.S.", "field_of_study": "Computer Science", "start_year": 2023, "end_year": 2027, "grade": "3.7"}
+    ],
+    "skills": [
+      {"id": "P1.sk1", "skill_name": "Python", "skill_category": "Languages"},
+      {"id": "P1.sk2", "skill_name": "Java", "skill_category": "Languages"},
+      {"id": "P1.sk3", "skill_name": "C", "skill_category": "Languages"},
+      {"id": "P1.sk4", "skill_name": "JavaScript", "skill_category": "Languages"},
+      {"id": "P1.sk5", "skill_name": "Go", "skill_category": "Languages"},
+      {"id": "P1.sk6", "skill_name": "React", "skill_category": "Frameworks"},
+      {"id": "P1.sk7", "skill_name": "Node.js", "skill_category": "Frameworks"},
+      {"id": "P1.sk8", "skill_name": "Django", "skill_category": "Frameworks"},
+      {"id": "P1.sk9", "skill_name": "PyTorch", "skill_category": "Frameworks"},
+      {"id": "P1.sk10", "skill_name": "PostgreSQL", "skill_category": "Databases"},
+      {"id": "P1.sk11", "skill_name": "MongoDB", "skill_category": "Databases"},
+      {"id": "P1.sk12", "skill_name": "Docker", "skill_category": "Tools"},
+      {"id": "P1.sk13", "skill_name": "Git", "skill_category": "Tools"},
+      {"id": "P1.sk14", "skill_name": "Linux", "skill_category": "Tools"},
+      {"id": "P1.sk15", "skill_name": "HTML", "skill_category": "Web"},
+      {"id": "P1.sk16", "skill_name": "CSS", "skill_category": "Web"}
+    ],
+    "experience": [
+      {
+        "id": "P1.exp1", "company": "Ledgerly", "role": "Software Engineering Intern", "start_date": "2026-05", "end_date": "2026-08",
+        "bullets": [
+          {"id": "P1.exp1.b1", "bullet_text": "Built 4 REST API endpoints in Django REST Framework for invoice reconciliation, used by the internal finance team"},
+          {"id": "P1.exp1.b2", "bullet_text": "Wrote PostgreSQL migrations and indexes that cut a slow report query from 9s to 1.2s"},
+          {"id": "P1.exp1.b3", "bullet_text": "Added pytest unit tests that raised coverage of the payments module from 41% to 68%"},
+          {"id": "P1.exp1.b4", "bullet_text": "Containerized the local development setup with Docker Compose, reducing new-intern setup from a day to under an hour"}
+        ]
+      },
+      {
+        "id": "P1.exp2", "company": "Lakeshore State University, Dept. of Computer Science", "role": "Teaching Assistant, Data Structures", "start_date": "2025-08", "end_date": "Present",
+        "bullets": [
+          {"id": "P1.exp2.b1", "bullet_text": "Lead weekly lab sections of 30 students on trees, graphs, and hashing in Java"},
+          {"id": "P1.exp2.b2", "bullet_text": "Wrote JUnit autograder tests for 6 object-oriented programming assignments"}
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "P1.proj1", "project_title": "CampusEats", "description": "Food-truck ordering web app for campus", "tech_stack": "React, Node.js, Express, MongoDB",
+        "bullets": [
+          {"id": "P1.proj1.b1", "bullet_text": "Built a React front end and Express API for ordering and pickup notifications across 3 campus food trucks"},
+          {"id": "P1.proj1.b2", "bullet_text": "Implemented JWT-based login with separate vendor and student roles"},
+          {"id": "P1.proj1.b3", "bullet_text": "Reached 400 registered users during a two-week campus pilot with two teammates"}
+        ]
+      },
+      {
+        "id": "P1.proj2", "project_title": "TinyKV", "description": "Replicated key-value store (distributed systems course)", "tech_stack": "Go",
+        "bullets": [
+          {"id": "P1.proj2.b1", "bullet_text": "Implemented Raft leader election and log replication in Go, passing all course test suites"},
+          {"id": "P1.proj2.b2", "bullet_text": "Measured throughput under node failures with a custom load generator"}
+        ]
+      },
+      {
+        "id": "P1.proj3", "project_title": "Leaf Disease Classifier", "description": "Image classification course project", "tech_stack": "Python, PyTorch",
+        "bullets": [
+          {"id": "P1.proj3.b1", "bullet_text": "Fine-tuned a ResNet-18 model in PyTorch to classify 10 leaf diseases with 91% validation accuracy"},
+          {"id": "P1.proj3.b2", "bullet_text": "Built train, validation, and test splits and compared augmentation strategies across 5 experiments"}
+        ]
+      },
+      {
+        "id": "P1.proj4", "project_title": "huffzip", "description": "File compression command-line tool", "tech_stack": "C",
+        "bullets": [
+          {"id": "P1.proj4.b1", "bullet_text": "Wrote a Huffman-coding compressor in C with a command-line interface, checked for memory leaks with Valgrind"}
+        ]
+      }
+    ],
+    "certifications": [],
+    "achievements": [
+      {"id": "P1.ach1", "title": "Dean's List", "description": "Fall 2024 to Spring 2026", "category": "Academic"},
+      {"id": "P1.ach2", "title": "2nd place, LakeHacks 2025", "description": "Built a bus-arrival notifier in 24 hours", "category": "Competition"}
+    ],
+    "external_profiles": [
+      {"id": "P1.ext1", "platform": "GitHub", "profile_url": "https://github.com/example-priya"},
+      {"id": "P1.ext2", "platform": "LinkedIn", "profile_url": "https://www.linkedin.com/in/example-priya"}
+    ]
+  }
+}
