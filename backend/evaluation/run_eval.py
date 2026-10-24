@@ -2,13 +2,14 @@
 
     cd backend
     python -m evaluation.run_eval --max-cost 1.50
-    python -m evaluation.run_eval --rpm 4           # stay under the Gemini free tier (5 per minute)
+    python -m evaluation.run_eval --rpm 4           # stay under a per-minute request limit
     python -m evaluation.run_eval --offline        # no API calls (fakes), for checking the harness
+    python -m evaluation.run_eval --no-llm         # real Pinecone matching, LLM off (free)
 
 Uses a throwaway in-memory database and storage directory, never the app
-database. Live runs call Gemini (JD analysis, rewrite, rewrite check) and
-Pinecone (embeddings) using the keys in backend/.env, and stop early if the
-Gemini cost passes --max-cost.
+database. Live runs call the configured LLM (JD analysis, rewrite, rewrite
+check) and Pinecone (embeddings) using the keys in backend/.env, wait out
+short rate limits, and stop early if the LLM cost passes --max-cost.
 
 Writes results/<timestamp>.json and results/<timestamp>-calibration.md.
 """
@@ -33,7 +34,7 @@ from app.models.profile import (
 )
 from app.repositories import JDAnalysisRepo
 from app.clock import utcnow
-from app.services import auth_service, draft_service, llm_client, profile_service
+from app.services import ai_status, auth_service, draft_service, llm_client, profile_service
 from app.services.jd_analyzer import analyze_jd, jd_to_dict
 from app.domain.resume_draft import JDData
 from evaluation import scoring
@@ -49,6 +50,9 @@ SECTIONS = [
 logger = logging.getLogger("evaluation")
 
 
+LIVE_RATE_LIMIT_WAIT_SECONDS = 120
+
+
 class BudgetExceeded(Exception):
     pass
 
@@ -56,7 +60,7 @@ class BudgetExceeded(Exception):
 def check_budget(max_cost: float) -> None:
     spent = llm_client.usage_log.total.cost_usd
     if spent > max_cost:
-        raise BudgetExceeded(f"Gemini spend ${spent:.3f} passed the ${max_cost:.2f} cap")
+        raise BudgetExceeded(f"LLM spend ${spent:.3f} passed the ${max_cost:.2f} cap")
 
 
 def load_persona(db, persona: dict):
@@ -147,10 +151,11 @@ def summarise(extraction: list[dict], tasks: list[dict]) -> dict:
         "blocked_reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1])),
         "factuality_violations": sum(len(t["violations"]) for t in tasks),
         "matching_modes": sorted({t["matching_mode"] for t in tasks}),
-        "gemini": {purpose: {"calls": u.calls, "input_tokens": u.input_tokens, "output_tokens": u.output_tokens,
-                             "cost_usd": round(u.cost_usd, 4)}
-                   for purpose, u in usage.by_purpose.items()},
-        "gemini_cost_usd": round(usage.total.cost_usd, 4),
+        "llm_provider": ai_status.llm_provider_name(),
+        "llm": {purpose: {"calls": u.calls, "input_tokens": u.input_tokens, "output_tokens": u.output_tokens,
+                          "cost_usd": round(u.cost_usd, 4)}
+                for purpose, u in usage.by_purpose.items()},
+        "llm_cost_usd": round(usage.total.cost_usd, 4),
     }
 
 
@@ -178,7 +183,7 @@ def install_offline_fakes() -> None:
     from app.services import embedding_service, jd_analyzer, rewrite_service
     from tests.conftest import fake_embed_batch
 
-    settings.GEMINI_API_KEY = settings.PINECONE_API_KEY = "offline"
+    settings.GEMINI_API_KEY = settings.LLM_API_KEY = settings.PINECONE_API_KEY = "offline"
     embedding_service._embed_batch = fake_embed_batch
 
     def fake_json(prompt, schema, purpose, max_wait_seconds=0):
@@ -196,15 +201,18 @@ def install_offline_fakes() -> None:
     rewrite_service.generate_json = fake_json
 
 
-def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: float = 0, no_gemini: bool = False) -> dict:
+def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: float = 0, no_llm: bool = False) -> dict:
     if rpm:
         llm_client.min_interval_seconds = 60 / rpm
-    if no_gemini:
-        settings.GEMINI_API_KEY = ""
+    if no_llm:
+        settings.GEMINI_API_KEY = settings.LLM_API_KEY = ""
     if offline:
         install_offline_fakes()
-    elif not settings.PINECONE_API_KEY or not (settings.GEMINI_API_KEY or no_gemini):
-        raise SystemExit("Live runs need GEMINI_API_KEY and PINECONE_API_KEY in backend/.env (or use --offline or --no-gemini)")
+    elif not settings.PINECONE_API_KEY or not (ai_status.llm_available() or no_llm):
+        raise SystemExit("Live runs need an LLM key (GEMINI_API_KEY or LLM_API_KEY) and PINECONE_API_KEY "
+                         "in backend/.env (or use --offline or --no-llm)")
+    else:
+        llm_client.min_wait_seconds = LIVE_RATE_LIMIT_WAIT_SECONDS
 
     settings.STORAGE_DIR = tempfile.mkdtemp(prefix="oneresume-eval-")
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -230,11 +238,11 @@ def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: floa
         stopped = str(exc)
         logger.warning(stopped)
 
-    report = {"run_at": datetime.now().isoformat(timespec="seconds"), "offline": offline, "gemini": not (offline or no_gemini),
+    report = {"run_at": datetime.now().isoformat(timespec="seconds"), "offline": offline, "llm": not (offline or no_llm),
               "stopped_early": stopped,
               "summary": summarise(extraction, results), "extraction": extraction, "tasks": results}
     RESULTS_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S") + ("-offline" if offline else "-no-gemini" if no_gemini else "")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S") + ("-offline" if offline else "-no-llm" if no_llm else "")
     (RESULTS_DIR / f"{stamp}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     (RESULTS_DIR / f"{stamp}-calibration.md").write_text(calibration_markdown(results, jds))
     report["files"] = [str(RESULTS_DIR / f"{stamp}.json"), str(RESULTS_DIR / f"{stamp}-calibration.md")]
@@ -243,17 +251,17 @@ def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: floa
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--max-cost", type=float, default=1.50, help="stop when Gemini spend passes this (USD)")
-    parser.add_argument("--offline", action="store_true", help="use fakes instead of Gemini and Pinecone")
+    parser.add_argument("--max-cost", type=float, default=1.50, help="stop when LLM spend passes this (USD)")
+    parser.add_argument("--offline", action="store_true", help="use fakes instead of the LLM and Pinecone")
     parser.add_argument("--only", nargs="*", help="task IDs to run, e.g. T01 T08")
-    parser.add_argument("--no-gemini", action="store_true",
-                        help="real Pinecone matching, Gemini off (basic JD extraction, no suggestions); costs nothing")
-    parser.add_argument("--rpm", type=float, default=0, help="max Gemini requests per minute (free tier: 5)")
+    parser.add_argument("--no-llm", action="store_true",
+                        help="real Pinecone matching, LLM off (basic JD extraction, no suggestions); costs nothing")
+    parser.add_argument("--rpm", type=float, default=0, help="max LLM requests per minute")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     for noisy in ("httpx", "app.services.llm_client", "google_genai"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
-    report = run(args.max_cost, args.offline, args.only, args.rpm, args.no_gemini)
+    report = run(args.max_cost, args.offline, args.only, args.rpm, args.no_llm)
     print(json.dumps(report["summary"], indent=2))
     print("\n".join(report["files"]))
 
