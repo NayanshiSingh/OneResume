@@ -3,7 +3,8 @@
 Labels:
   supported           an experience, project, education, certification, or
                       achievement entry mentions the requirement
-  needs_confirmation  only the skills list mentions it
+  needs_confirmation  only the skills list mentions it, or every entry that
+                      mentions it only describes helping ("helped with X")
   not_found           nothing in the profile mentions it
 
 Matching is token-based, so "Java" never matches "JavaScript", "C" never
@@ -25,7 +26,16 @@ _ALIASES = {
     "js": "javascript", "ts": "typescript", "node": "node.js", "nodejs": "node.js",
     "reactjs": "react", "react.js": "react", "postgres": "postgresql", "k8s": "kubernetes",
     "golang": "go", "py": "python", "nextjs": "next.js", "vuejs": "vue", "vue.js": "vue",
+    "endpoint": "api",
 }
+# Bullets that only describe helping are evidence of exposure, not of the skill itself:
+# "Helped the team with the Kubernetes deployment". Helping other people with a skill
+# ("Help students debug JavaScript") still shows the skill, so only these phrasings count.
+_HEDGED = re.compile(
+    r"\b(?:help(?:ed|ing)?|assist(?:ed|ing)?|support(?:ed|ing)?)\s+(?:the\s+team\s+)?(?:with|in|on)\b"
+    r"|\bhelped\s+the\s+team\b|\bparticipated\s+in\b|\binvolved\s+in\b|\bexposure\s+to\b|\bshadowed\b",
+    re.IGNORECASE,
+)
 _ALTERNATIVES = re.compile(r"\s*,\s*(?:or\s+)?|\s+or\s+", re.IGNORECASE)
 
 
@@ -34,7 +44,7 @@ def _canonical(token: str) -> str:
     token = _ALIASES.get(token, token)
     # Treat simple plurals alike on both sides: "APIs" matches "API".
     if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
-        token = token[:-1]
+        token = _ALIASES.get(token[:-1], token[:-1])
     return token
 
 
@@ -105,8 +115,10 @@ def match_requirement(requirement: str, importance: str, evidence: list[Evidence
     terms = alternatives(requirement)
     hits = [e for e in evidence if any(contains_term(e._tokens, term) for term in terms)]
     demonstrated = [e for e in hits if e.kind != "skill"]
-    if demonstrated:
+    if any(not _HEDGED.search(e.text) for e in demonstrated):
         return RequirementMatch(requirement, importance, SUPPORTED, demonstrated)
+    if demonstrated:
+        return RequirementMatch(requirement, importance, NEEDS_CONFIRMATION, demonstrated)
     if hits:
         return RequirementMatch(requirement, importance, NEEDS_CONFIRMATION, hits)
     return RequirementMatch(requirement, importance, NOT_FOUND, [])

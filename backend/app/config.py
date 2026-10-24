@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     # ── Resume constraints ────────────────────────────────────
     MAX_EXPERIENCE_SECTIONS: int = 3
     MAX_PROJECT_SECTIONS: int = 3
-    MAX_BULLETS_PER_SECTION: int = 4
+    MAX_BULLETS_PER_SECTION: int = 5
+    BULLETS_PER_PAGE: int = 14  # experience + project bullets that fit one page
     MAX_SKILLS: int = 12
 
     # ── Accounts and sessions ─────────────────────────────────

@@ -204,6 +204,12 @@ export interface Job {
     finished_at?: string | null;
 }
 
+export interface Suggestion {
+    text: string;
+    status: "safe" | "blocked";
+    reasons: string[];
+}
+
 export interface DraftBullet {
     id: string;
     text: string;
@@ -211,6 +217,8 @@ export interface DraftBullet {
     included: boolean;
     pinned: boolean;
     user_edited: boolean;
+    ai_accepted?: boolean;
+    suggestion?: Suggestion | null;
 }
 
 export interface DraftEntry {
@@ -238,7 +246,7 @@ export interface DraftContent {
 export type DraftSection = "experience" | "projects" | "education" | "skills" | "certifications" | "achievements" | "external_profiles";
 
 export interface DraftOp {
-    op: "set_included" | "set_pinned" | "edit_bullet" | "revert_bullet";
+    op: "set_included" | "set_pinned" | "edit_bullet" | "revert_bullet" | "accept_suggestion";
     section: DraftSection;
     item_id: string;
     bullet_id?: string;
@@ -257,13 +265,22 @@ export interface DraftSummary {
     updated_at: string;
 }
 
+export interface ChangedBullet {
+    section: string;
+    item_id: string;
+    bullet_id: string;
+    original_text: string;
+    text: string;
+}
+
 export interface Draft extends DraftSummary {
     page_target: number;
     approved_revision?: number | null;
     content: DraftContent;
     coverage: (CoverageItem & { in_draft: boolean })[];
     warnings: string[];
-    edited_bullets: { section: string; item_id: string; bullet_id: string; original_text: string; text: string }[];
+    edited_bullets: ChangedBullet[];
+    accepted_suggestions: ChangedBullet[];
     exported_resume_id?: string | null;
 }
 

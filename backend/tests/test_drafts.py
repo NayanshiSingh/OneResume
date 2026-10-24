@@ -218,3 +218,34 @@ class TestApprovalAndExport:
         assert client.delete(f"/api/drafts/{draft['id']}").status_code == 204
         assert client.get(f"/api/resumes/{resume['id']}").status_code == 200
         assert client.get("/api/drafts").json() == []
+
+
+class TestPageBudget:
+    def test_bullets_share_one_budget_across_entries(self, client, db, sample_jd_text):
+        for i in range(3):
+            client.post("/api/profile/experience", json={"company": f"Co{i}", "role": "Engineer", "bullets": [
+                {"bullet_text": f"Python service {i}-{j}"} for j in range(7)]})
+        for i in range(3):
+            client.post("/api/profile/projects", json={"project_title": f"P{i}", "bullets": [
+                {"bullet_text": f"Docker tool {i}-{j}"} for j in range(4)]})
+        content = make_draft(client, db, sample_jd_text)["content"]
+        included = [b for s in ("experience", "projects") for e in content[s] if e["included"] for b in e["bullets"] if b["included"]]
+        assert len(included) == settings.BULLETS_PER_PAGE
+
+    def test_every_included_job_keeps_a_bullet(self, client, db, sample_jd_text):
+        client.post("/api/profile/experience", json={"company": "Acme", "role": "Engineer", "bullets": [
+            {"bullet_text": f"Python FastAPI PostgreSQL Docker AWS task {j}"} for j in range(20)]})
+        client.post("/api/profile/experience", json={"company": "Cafe", "role": "Barista", "bullets": [
+            {"bullet_text": "Made coffee"}]})
+        content = make_draft(client, db, sample_jd_text)["content"]
+        barista = next(e for e in content["experience"] if e["title"] == "Barista")
+        assert barista["included"] and barista["bullets"][0]["included"]
+
+    def test_project_without_budget_is_left_out(self, client, db, sample_jd_text):
+        for i in range(3):
+            client.post("/api/profile/experience", json={"company": f"Co{i}", "role": "Engineer", "bullets": [
+                {"bullet_text": f"Python FastAPI PostgreSQL Docker AWS work {i}-{j}"}
+                for j in range(settings.MAX_BULLETS_PER_SECTION)]})
+        client.post("/api/profile/projects", json={"project_title": "Knitting blog", "bullets": [{"bullet_text": "Wrote posts"}]})
+        content = make_draft(client, db, sample_jd_text)["content"]
+        assert content["projects"][0]["included"] is False

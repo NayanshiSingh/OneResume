@@ -36,7 +36,7 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 | 📋 **Reviewed JD Analysis** | Gemini (or labelled basic rules) extracts requirements; you correct them before anything is generated |
 | 🔗 **Semantic Matching** | 1024-dimensional multilingual embeddings power cosine-similarity scoring to match your profile against each JD |
 | 🏆 **Composite Relevance Scoring** | Multi-factor scoring engine weighing semantic similarity, skill importance, section priority, recency, and ATS keyword overlap |
-| ✍️ **Your Wording, Your Approval** | Drafts use your own bullets; you include, hide, pin, or edit them, then approve a specific revision before export |
+| ✍️ **Your Wording, Your Approval** | Drafts use your own bullets. Checked suggestions are offered beside them with changes highlighted; you accept, edit, hide, or pin, then approve a specific revision before export |
 | 📊 **ATS-Friendly Output** | Single-column template with standard headings and selectable text |
 | 📥 **Multi-Format Export** | Download your resume as **PDF** (HTML template rendered with WeasyPrint) or **DOCX** — professionally formatted and ready to submit |
 | 🔄 **Resume Versioning** | Each exported revision is stored as a new version with its files |
@@ -95,18 +95,20 @@ OneResume leverages two distinct generative AI services, each with a clearly def
 
 ### 1. Google Gemini (`gemini-3-flash-preview`)
 
-Gemini is used in two tightly scoped roles:
+Every call goes through `llm_client.py` (Google's `google-genai` SDK): JSON output against a Pydantic schema, a low thinking level to keep cost down, and token usage logged per purpose.
 
 | Use Case | Service | Responsibility |
 |---|---|---|
-| **JD Analysis** | `jd_analyzer.py` | Extracts structured data from raw job descriptions — role title, experience level, must-have skills, nice-to-have skills, ATS keywords, and role category. Output follows a strict JSON schema. |
-| **Bullet Rewriting** | `llm_service.py` | Rewrites selected resume bullet points to be concise, impact-driven, and ATS-friendly. **Strictly forbidden** from fabricating skills, adding unverified information, or making structural changes. |
+| **Resume Import** | `import_service.py` | Maps uploaded resume text into profile sections, copying wording exactly |
+| **JD Analysis** | `jd_analyzer.py` | Extracts the role title, required and preferred skills, keywords, level, and category |
+| **Suggested Rewording** | `rewrite_service.py` | Proposes clearer wording for included draft bullets |
+| **Rewording Check** | `rewrite_service.py` | A second call compares each original and rewrite and flags meaning drift |
 
 **Key Design Principles:**
-- The LLM acts as a **rewriter**, never a **decision-maker**
-- All prompts are governed by **strict prompt contracts** to prevent hallucination
-- Both services include **rule-based fallbacks** that activate when the Gemini API key is unavailable or the API call fails
-- JSON responses are sanitized to strip markdown code fences that Gemini occasionally wraps around output
+- The LLM proposes; the user decides. Suggestions never replace your wording until you accept them
+- Every suggestion passes deterministic checks first (`claim_checks.py`): it is blocked if it adds a number, a tool or skill, a stronger verb ("helped" → "led"), a seniority word, or a lot of length that the original does not have. Only suggestions that also pass the second Gemini check are offered
+- Text from resumes and job descriptions is treated as untrusted data in every prompt
+- Without a key, or when a call fails, each feature falls back to labelled basic mode. Background jobs wait out rate limits (HTTP 429); interactive requests fall back at once
 
 ### 2. Pinecone Inference API (`multilingual-e5-large`)
 
@@ -162,7 +164,7 @@ When a required skill is missing from the profile, OneResume uses a 3-tier confi
 | **Pydantic** | ≥ 2.5 | Request/response validation & settings management |
 | **Alembic** | ≥ 1.13 | Database migration toolkit |
 | **PostgreSQL** | 17 | Database (Docker Compose locally); tests use in-memory SQLite |
-| **google-generativeai** | ≥ 0.3.0 | Google Gemini SDK |
+| **google-genai** | 2.31 | Google Gemini SDK |
 | **pinecone** | ≥ 5.0.0 | Pinecone Inference API for embeddings |
 | **NumPy** | ≥ 1.24 | Vector math and cosine similarity |
 | **python-docx** | ≥ 1.1 | DOCX resume export |
@@ -226,7 +228,9 @@ OneResume/
 │   │   │   ├── embedding_service.py   # Text → 1024D vectors (Pinecone)
 │   │   │   ├── scoring_engine.py      # Composite relevance scoring
 │   │   │   ├── relevance_selector.py  # Draft content: what starts included, in profile order
-│   │   │   ├── llm_service.py         # Bullet rewriting (not used by drafts yet)
+│   │   │   ├── llm_client.py          # The single Gemini client (schemas, retries, usage)
+│   │   │   ├── rewrite_service.py     # Suggested rewording plus a second-model check
+│   │   │   ├── claim_checks.py        # Deterministic checks that a rewrite adds nothing
 │   │   │   ├── resume_assembler.py    # Final resume data assembly
 │   │   │   ├── pdf_renderer.py        # HTML template → PDF (WeasyPrint)
 │   │   │   └── export_service.py      # DOCX export (python-docx)
@@ -287,7 +291,8 @@ graph TD
 | Coverage | `evidence_service.py` | Token-aware matching labels each requirement: *supported* (an experience, project, education, certification, or achievement mentions it), *needs confirmation* (only the skills list does), or *not found*. Java never matches JavaScript; C never matches C# |
 | Draft job | `job_service.py`, `app/worker.py` | A database-backed job with an idempotency key; the worker builds the draft and failed jobs can be retried |
 | Selection | `relevance_selector.py`, `scoring_engine.py` | Every entry is kept so it can be restored; scores decide what starts included. Entries keep profile order; wording is the user's own. Embeddings are used when Pinecone is configured, otherwise labelled exact-word matching |
-| Review and approval | `draft_service.py` | Edits create a new revision and clear approval; edited bullets are marked as user-supplied |
+| Suggestions | `rewrite_service.py`, `claim_checks.py` | Each included bullet may get a suggestion; rule checks and a second Gemini call decide whether it is offered (safe) or blocked, with reasons |
+| Review and approval | `draft_service.py` | Accepting a suggestion or editing creates a new revision and clears approval; accepted and edited bullets are listed at approval |
 | Export | `resume_assembler.py`, `pdf_renderer.py`, `export_service.py` | Only the approved revision is exported, once per revision, as a new resume version |
 
 Without API keys every step still works in a clearly labelled basic mode.
@@ -381,6 +386,8 @@ pytest tests/test_jd_analyzer.py
 pytest tests/test_integration.py
 ```
 
+**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) and `--offline` to check the harness without any API calls. Do not use the free tier with real resumes: Google may use free-tier data to improve its products.
+
 **Test Suite Coverage:**
 
 | Module | Tests |
@@ -397,7 +404,8 @@ pytest tests/test_integration.py
 | `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
 | `test_embedding_service.py` | Embedding generation & cosine similarity |
 | `test_scoring_engine.py` | Composite scoring formula |
-| `test_llm_service.py` | Bullet rewriting (Gemini + fallback) |
+| `test_rewrites.py` | Claim checks, the two-step suggestion check, accepting suggestions, rate-limit retries |
+| `test_eval_scoring.py` | Evaluation scoring functions |
 | `test_resume_assembler.py` | Resume data assembly |
 | `test_edge_cases.py` | Edge cases & error handling |
 
@@ -448,7 +456,8 @@ All configuration is managed via environment variables (loaded from `.env`):
 | `EMBEDDING_DIM` | `1024` | Embedding vector dimensions |
 | `MAX_EXPERIENCE_SECTIONS` | `3` | Max experience sections in resume |
 | `MAX_PROJECT_SECTIONS` | `3` | Max project sections in resume |
-| `MAX_BULLETS_PER_SECTION` | `4` | Max bullets per section |
+| `MAX_BULLETS_PER_SECTION` | `5` | Max bullets per entry (one page) |
+| `BULLETS_PER_PAGE` | `14` | Experience and project bullets shared across one page |
 | `MAX_SKILLS` | `12` | Max skills listed in resume |
 | `STORAGE_DIR` | `backend/storage` | Private directory for generated files |
 | `SESSION_TTL_DAYS` | `14` | Session lifetime |

@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { Check, Download, Eye, EyeOff, Pencil, Pin, PinOff, RotateCcw, X } from "lucide-react";
+import { Check, Download, Eye, EyeOff, Pencil, Pin, PinOff, RotateCcw, Sparkles, X } from "lucide-react";
+import { addedWords } from "@/lib/diff";
 import { EvidenceBadge, Notices } from "@/components/Notices";
 import {
     draftsApi,
@@ -22,6 +23,7 @@ function BulletRow({ section, entry, bullet, apply }: { section: DraftSection; e
     const [editing, setEditing] = useState(false);
     const [text, setText] = useState(bullet.text);
     const target = { section, item_id: entry.id, bullet_id: bullet.id };
+    const suggestion = bullet.included && entry.included ? bullet.suggestion : null;
 
     return (
         <div className={`${styles.bullet} ${bullet.included ? "" : styles.excluded}`}>
@@ -31,11 +33,32 @@ function BulletRow({ section, entry, bullet, apply }: { section: DraftSection; e
                 ) : (
                     <span>• {bullet.text}</span>
                 )}
-                {bullet.user_edited && (
+                {(bullet.user_edited || bullet.ai_accepted) && (
                     <>
-                        <span className={styles.editedTag}>EDITED BY YOU · YOU CONFIRM THIS AT APPROVAL</span>
+                        <span className={styles.editedTag}>
+                            {bullet.ai_accepted ? "SUGGESTION ACCEPTED" : "EDITED BY YOU"} · YOU CONFIRM THIS AT APPROVAL
+                        </span>
                         <span className={styles.original}>{bullet.original_text}</span>
                     </>
+                )}
+                {suggestion && !editing && bullet.text !== suggestion.text && (
+                    <div className={suggestion.status === "safe" ? styles.suggestion : styles.suggestionBlocked}>
+                        <span className="mono-label">
+                            <Sparkles size={10} /> {suggestion.status === "safe" ? "SUGGESTED WORDING" : "SUGGESTION BLOCKED"}
+                        </span>
+                        <span>
+                            {addedWords(bullet.original_text, suggestion.text).map((w, i) => (
+                                <span key={i}>{w.added ? <mark className={styles.added}>{w.word}</mark> : w.word} </span>
+                            ))}
+                        </span>
+                        {suggestion.status === "safe" ? (
+                            <button className="btn-outline btn-sm" onClick={() => apply({ op: "accept_suggestion", ...target })}>
+                                <Check size={12} /> ACCEPT
+                            </button>
+                        ) : (
+                            <ul className={styles.reasons}>{suggestion.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+                        )}
+                    </div>
                 )}
             </div>
             <div className={styles.actions}>
@@ -52,7 +75,7 @@ function BulletRow({ section, entry, bullet, apply }: { section: DraftSection; e
                             {bullet.included ? <EyeOff size={12} /> : <Eye size={12} />}
                         </button>
                         <button className="btn-outline btn-sm" aria-label="Edit for this resume" onClick={() => setEditing(true)}><Pencil size={12} /></button>
-                        {bullet.user_edited && (
+                        {(bullet.user_edited || bullet.ai_accepted) && (
                             <button className="btn-outline btn-sm" aria-label="Revert to your profile wording"
                                 onClick={() => apply({ op: "revert_bullet", ...target }).then((ok) => ok && setText(bullet.original_text))}><RotateCcw size={12} /></button>
                         )}
@@ -168,6 +191,10 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
     const { content } = draft;
     const approvedCurrent = draft.status === "approved" && draft.approved_revision === draft.revision;
     const missingRequired = draft.coverage.filter((c) => c.importance === "required" && c.label === "not_found");
+    const safeOps: DraftOp[] = (["experience", "projects"] as const).flatMap((section) =>
+        content[section].filter((e) => e.included).flatMap((e) => e.bullets
+            .filter((b) => b.included && b.suggestion?.status === "safe" && b.text !== b.suggestion.text)
+            .map((b) => ({ op: "accept_suggestion" as const, section, item_id: e.id, bullet_id: b.id }))));
 
     return (
         <div>
@@ -180,6 +207,12 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <Notices mode={draft.matching_mode} warnings={draft.warnings} />
+            {safeOps.length > 0 && (
+                <div className={styles.suggestionBar}>
+                    <span><Sparkles size={12} /> {safeOps.length} suggested rewording(s) passed every check. Review them below, or accept them all.</span>
+                    <button className="btn-outline btn-sm" onClick={() => apply(...safeOps)} disabled={busy}>ACCEPT ALL SAFE</button>
+                </div>
+            )}
             {error && <p className="mono-label" style={{ color: "#ef4444" }}>ERROR: {error}</p>}
 
             <div className={styles.layout}>
@@ -237,6 +270,9 @@ export default function DraftReviewPage({ params }: { params: Promise<{ id: stri
                             <span>By approving, you confirm everything in this draft is accurate.</span>
                             {draft.edited_bullets.length > 0 && (
                                 <span>You edited {draft.edited_bullets.length} bullet(s) for this resume; those are your own claims.</span>
+                            )}
+                            {draft.accepted_suggestions.length > 0 && (
+                                <span>You accepted {draft.accepted_suggestions.length} suggested rewording(s). Check each still says exactly what you did.</span>
                             )}
                             <button className="btn-primary btn-sm" onClick={approve} disabled={busy}><Check size={12} /> APPROVE</button>
                         </div>
