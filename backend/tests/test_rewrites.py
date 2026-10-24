@@ -25,6 +25,17 @@ from tests.conftest import make_draft
     ("Built an ML model", "Built an expert-level ML model", "", "seniority"),
     ("Built APIs", "Built APIs " + "with careful attention to detail " * 6, "", "longer"),
     ("worked on the website", "Maintained the company website", "", None),
+    # Same verb, different tense (seen with Groq in the evaluation run).
+    ("Lead weekly lab sections of 30 students", "Led weekly lab sections for 30 students", "", None),
+    ("Mentor two junior engineers", "Mentored two junior engineers", "", None),
+    # Base words that are not the verb must not excuse a stronger claim.
+    ("Built my own CLI", "Owned the CLI", "", "responsibility"),
+    ("Fixed the hard drive backup", "Drove the backup project", "", "responsibility"),
+    ("Found and fixed bugs", "Founded the bug-fix effort", "", "responsibility"),
+    ("Helped mentor students", "Led mentoring for students", "", "responsibility"),
+    # "30+" and "over 30" are the same claim; adding a "+" is not.
+    ("Trained 30+ new associates", "Trained over 30 new associates", "", None),
+    ("Trained 30 new associates", "Trained 30+ new associates", "", "number"),
 ])
 def test_claim_checks(original, rewrite, context, blocked_by):
     reasons = check_rewrite(original, rewrite, context, ["Kubernetes", "Redis", "Python"])
@@ -85,6 +96,13 @@ def test_safe_suggestion_passes_both_checks(monkeypatch, gemini_on):
     warnings, result = suggest(monkeypatch, fake, content_with("built rest apis in python"))
     assert warnings == []
     assert result["b0"] == {"text": "Developed REST APIs in Python", "status": "safe", "reasons": []}
+
+
+def test_checker_sees_the_entry_context(monkeypatch, gemini_on):
+    # A project's tech stack is part of the source; the checker must see it like the rules do.
+    fake = FakeGemini({"b0": "Developed REST APIs in Python"})
+    suggest(monkeypatch, fake, content_with("built rest apis in python"))
+    assert '"context": "Engineer Acme"' in fake.check_pairs
 
 
 def test_rule_blocked_suggestion_is_not_sent_to_checker(monkeypatch, gemini_on):

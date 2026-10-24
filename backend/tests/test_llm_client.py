@@ -154,3 +154,13 @@ def test_harness_wait_floor_lets_interactive_calls_wait(monkeypatch):
     monkeypatch.setattr(llm_client, "min_wait_seconds", 60.0)
     assert llm_client.generate_json("p", _Answer, "test").summary == "ok"
     assert sleeps == [5.0]
+
+
+def test_typographic_hyphens_and_spaces_become_plain(monkeypatch):
+    # gpt-oss on Groq wrote "end\u2011to\u2011end" and "20\u202fk"; they would not match "end-to-end" or "20k".
+    def typographic(prompt, schema):
+        return schema(items=[_Item(name="end\u2011to\u2011end tests", note="20\u202fk users")], summary="a\u00a0b"), 1, 1
+    monkeypatch.setattr(llm_client, "_generate", typographic)
+    parsed = llm_client.generate_json("p", _Answer, "test")
+    assert parsed.items[0].name == "end-to-end tests" and parsed.items[0].note == "20 k users"
+    assert parsed.summary == "a b"

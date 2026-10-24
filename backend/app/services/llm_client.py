@@ -34,6 +34,22 @@ def prices() -> tuple[float, float]:
     return GEMINI_INPUT_PRICE, GEMINI_OUTPUT_PRICE
 
 
+# Typographic hyphens and no-break spaces some models emit (gpt-oss writes "end\u2011to\u2011end").
+# They look normal but break keyword matching here and in applicant tracking systems.
+_PLAIN = str.maketrans({"\u2010": "-", "\u2011": "-", "\u2012": "-", "\u00a0": " ", "\u2007": " ",
+                        "\u2009": " ", "\u202f": " "})
+
+
+def _plain(value):
+    if isinstance(value, str):
+        return value.translate(_PLAIN)
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    return value
+
+
 class RateLimited(Exception):
     """The provider refused the call for now; it may be retried after retry_after seconds."""
 
@@ -204,6 +220,7 @@ def generate_json(prompt: str, schema: type[BaseModel], purpose: str, max_wait_s
             logger.warning("LLM rate limit on %s; retrying in %.0fs", purpose, exc.retry_after)
             time.sleep(exc.retry_after)
             waited += exc.retry_after
+    parsed = schema.model_validate(_plain(parsed.model_dump()))
     usage_log.record(purpose, input_tokens, output_tokens)
     input_price, output_price = prices()
     logger.info("LLM %s: %d in, %d out tokens (~$%.5f)", purpose, input_tokens, output_tokens,
