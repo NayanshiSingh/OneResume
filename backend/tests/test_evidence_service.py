@@ -87,3 +87,18 @@ def test_any_alternative_counts():
 def test_importance_is_kept():
     result = coverage(profile(bullets=["Python"]), JDData(must_have_skills=["Python"], nice_to_have_skills=["Docker"]))
     assert [(m.requirement, m.importance) for m in result] == [("Python", "required"), ("Docker", "preferred")]
+
+
+def test_hedged_evidence_needs_confirmation():
+    match = label_for("Kubernetes", bullets=["Helped the team with the Kubernetes deployment"])
+    assert match.label == NEEDS_CONFIRMATION
+    assert [e.id for e in match.evidence] == ["b0"]
+
+
+def test_any_unhedged_evidence_is_supported():
+    match = label_for("Kubernetes", bullets=["Helped with Kubernetes upgrades", "Ran Kubernetes clusters in production"])
+    assert match.label == SUPPORTED
+
+
+def test_endpoints_count_as_apis():
+    assert label_for("REST APIs", bullets=["Added two REST endpoints to a Spring service"]).label == SUPPORTED
