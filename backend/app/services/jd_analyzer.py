@@ -7,6 +7,7 @@ fallback if the API key is not set.
 import json
 import re
 import logging
+from dataclasses import asdict
 
 from app.config import settings
 from app.domain.resume_draft import JDData
@@ -105,3 +106,7 @@ def analyze_jd(raw_text: str) -> JDData:
         except Exception as e:
             logger.warning("Gemini JD analysis failed, falling back to rules: %s", e)
     return analyze_jd_rules(raw_text)
+
+
+def jd_to_dict(jd: JDData) -> dict:
+    return asdict(jd)

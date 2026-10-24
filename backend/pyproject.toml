@@ -20,9 +20,10 @@ dependencies = [
     "python-docx>=1.1.0",
     "Jinja2>=3.1.0",
     "python-multipart>=0.0.6",
-    "aiofiles>=23.2.0",
-    "passlib[bcrypt]>=1.7.0",
-    "bcrypt>=4.0.0,<4.1.0",
+    "psycopg[binary]>=3.2",
+    "pwdlib[argon2]>=0.2.1",
+    "email-validator>=2.2",
+    "weasyprint>=63",
 ]
 
 [project.optional-dependencies]
@@ -35,4 +36,5 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"

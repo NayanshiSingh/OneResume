@@ -1,38 +1,28 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Download, FileText, Clock } from "lucide-react";
-import { profilesApi, resumesApi, type Resume } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { Download, FileText, Clock, Trash2 } from "lucide-react";
+import { resumesApi, type Resume } from "@/lib/api";
 import styles from "./page.module.css";
 
 function ResumesContent() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const userId = searchParams.get("user_id");
-
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (!userId) {
-            router.replace("/");
-            return;
+        resumesApi.list().then(setResumes).catch((err: unknown) => setError((err as Error).message)).finally(() => setLoading(false));
+    }, []);
+
+    async function deleteResume(resume: Resume) {
+        if (!window.confirm(`Delete ${resume.job_title} v${resume.version}? This removes its files.`)) return;
+        try {
+            await resumesApi.delete(resume.id);
+            setResumes((current) => current.filter((r) => r.id !== resume.id));
+        } catch (err: unknown) {
+            setError((err as Error).message);
         }
-        async function load() {
-            try {
-                const profile = await profilesApi.getByUser(userId!);
-                const r = await resumesApi.list(profile.id);
-                setResumes(r);
-            } catch {
-                // no profile or resumes
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
-    }, [userId, router]);
+    }
 
     function formatDate(d: string) {
         return new Date(d).toLocaleDateString("en-US", {
@@ -101,22 +91,18 @@ function ResumesContent() {
                                 <span className="mono-label">{formatDate(resume.created_at)}</span>
                             </span>
                             <div className={styles.colActions}>
-                                <a
-                                    href={resumesApi.downloadUrl(resume.id, "pdf")}
-                                    className="btn-primary btn-sm"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    <Download size={12} /> PDF
-                                </a>
-                                <a
-                                    href={resumesApi.downloadUrl(resume.id, "docx")}
-                                    className="btn-outline btn-sm"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    <Download size={12} /> DOCX
-                                </a>
+                                {resume.formats.map((format) => (
+                                    <a
+                                        key={format}
+                                        href={resumesApi.downloadUrl(resume.id, format)}
+                                        className={`${format === "pdf" ? "btn-primary" : "btn-outline"} btn-sm`}
+                                    >
+                                        <Download size={12} /> {format.toUpperCase()}
+                                    </a>
+                                ))}
+                                <button className="btn-danger btn-sm" onClick={() => deleteResume(resume)} aria-label="Delete resume">
+                                    <Trash2 size={12} />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -127,9 +113,5 @@ function ResumesContent() {
 }
 
 export default function ResumesPage() {
-    return (
-        <Suspense fallback={<div className="loading-pulse">LOADING...</div>}>
-            <ResumesContent />
-        </Suspense>
-    );
+    return <ResumesContent />;
 }

@@ -10,6 +10,7 @@ import numpy as np
 from typing import Optional
 
 from app.config import settings
+from app.errors import ProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -26,21 +27,10 @@ def _get_client():
     return _client
 
 
-def generate_embedding(text: str) -> list[float]:
-    """Generate an embedding vector for a text string."""
-    pc = _get_client()
-    result = pc.inference.embed(
-        model=settings.EMBEDDING_MODEL,
-        inputs=[{"text": text}],
-        parameters={"input_type": "passage", "truncate": "END"},
-    )
-    return list(result.data[0].values)
-
-
-def generate_embeddings(texts: list[str]) -> list[list[float]]:
-    """Batch generate embeddings for multiple texts."""
-    if not texts:
-        return []
+def _embed_batch(texts: list[str]) -> list[list[float]]:
+    """The only call to the embedding provider; tests replace this function."""
+    if not settings.PINECONE_API_KEY:
+        raise ProviderUnavailableError("The embedding service is not configured (PINECONE_API_KEY is missing)")
     pc = _get_client()
     result = pc.inference.embed(
         model=settings.EMBEDDING_MODEL,
@@ -48,6 +38,18 @@ def generate_embeddings(texts: list[str]) -> list[list[float]]:
         parameters={"input_type": "passage", "truncate": "END"},
     )
     return [list(item.values) for item in result.data]
+
+
+def generate_embedding(text: str) -> list[float]:
+    """Generate an embedding vector for a text string."""
+    return _embed_batch([text])[0]
+
+
+def generate_embeddings(texts: list[str]) -> list[list[float]]:
+    """Batch generate embeddings for multiple texts."""
+    if not texts:
+        return []
+    return _embed_batch(texts)
 
 
 def embedding_to_json(embedding: list[float]) -> str:

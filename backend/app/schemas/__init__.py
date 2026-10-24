@@ -1,32 +1,54 @@
 """Pydantic schemas for all entities."""
 
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from typing import ClassVar, Optional
+from pydantic import BaseModel, EmailStr, Field, model_validator
+
+
+class PatchModel(BaseModel):
+    """Partial update: only fields sent are applied; required fields cannot be cleared."""
+
+    required_fields: ClassVar[tuple[str, ...]] = ()
+
+    @model_validator(mode="after")
+    def _reject_clearing_required(self):
+        for name in self.required_fields:
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name} cannot be empty")
+        return self
+
+    def changes(self) -> dict:
+        return self.model_dump(exclude_unset=True)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  User
+#  Accounts
 # ═══════════════════════════════════════════════════════════════
 
 
-class UserCreate(BaseModel):
-    username: str = Field(..., min_length=2, max_length=100)
-    email: str = Field(..., max_length=255)
-    password: str = Field(..., min_length=6)
-
-
-class LoginOrRegister(BaseModel):
-    email: str = Field(..., max_length=255)
-    password: str = Field(..., min_length=6)
+class Credentials(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class UserOut(BaseModel):
     id: str
-    username: str
     email: str
     created_at: datetime
     model_config = {"from_attributes": True}
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(..., min_length=10, max_length=200)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ReorderRequest(BaseModel):
+    ids: list[str] = Field(..., min_length=1)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -35,9 +57,9 @@ class UserOut(BaseModel):
 
 
 class PersonalInfoCreate(BaseModel):
-    full_name: str
-    email: Optional[str] = None
-    phone_number: Optional[str] = None
+    full_name: str = Field(..., min_length=1, max_length=255)
+    email: Optional[str] = Field(None, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=30)
 
 
 class PersonalInfoOut(PersonalInfoCreate):
@@ -51,12 +73,24 @@ class PersonalInfoOut(PersonalInfoCreate):
 
 
 class EducationCreate(BaseModel):
-    institution: str
-    degree: str
-    field_of_study: Optional[str] = None
-    start_year: Optional[int] = None
-    end_year: Optional[int] = None
-    grade: Optional[str] = None
+    institution: str = Field(..., min_length=1, max_length=255)
+    degree: str = Field(..., min_length=1, max_length=255)
+    field_of_study: Optional[str] = Field(None, max_length=255)
+    start_year: Optional[int] = Field(None, ge=1950, le=2100)
+    end_year: Optional[int] = Field(None, ge=1950, le=2100)
+    end_month: Optional[int] = Field(None, ge=1, le=12)
+    grade: Optional[str] = Field(None, max_length=50)
+
+
+class EducationUpdate(PatchModel):
+    required_fields = ("institution", "degree")
+    institution: Optional[str] = Field(None, min_length=1, max_length=255)
+    degree: Optional[str] = Field(None, min_length=1, max_length=255)
+    field_of_study: Optional[str] = Field(None, max_length=255)
+    start_year: Optional[int] = Field(None, ge=1950, le=2100)
+    end_year: Optional[int] = Field(None, ge=1950, le=2100)
+    end_month: Optional[int] = Field(None, ge=1, le=12)
+    grade: Optional[str] = Field(None, max_length=50)
 
 
 class EducationOut(EducationCreate):
@@ -70,11 +104,31 @@ class EducationOut(EducationCreate):
 
 
 class SkillCreate(BaseModel):
-    skill_name: str
-    skill_category: Optional[str] = None
+    skill_name: str = Field(..., min_length=1, max_length=100)
+    skill_category: Optional[str] = Field(None, max_length=100)
+
+
+class SkillUpdate(PatchModel):
+    required_fields = ("skill_name",)
+    skill_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    skill_category: Optional[str] = Field(None, max_length=100)
 
 
 class SkillOut(SkillCreate):
+    id: str
+    model_config = {"from_attributes": True}
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Bullets (shared by experience and projects)
+# ═══════════════════════════════════════════════════════════════
+
+
+class BulletCreate(BaseModel):
+    bullet_text: str = Field(..., min_length=1, max_length=1000)
+
+
+class BulletOut(BulletCreate):
     id: str
     model_config = {"from_attributes": True}
 
@@ -84,21 +138,20 @@ class SkillOut(SkillCreate):
 # ═══════════════════════════════════════════════════════════════
 
 
-class ExperienceBulletCreate(BaseModel):
-    bullet_text: str
-
-
-class ExperienceBulletOut(ExperienceBulletCreate):
-    id: str
-    model_config = {"from_attributes": True}
-
-
 class ExperienceCreate(BaseModel):
-    company: str
-    role: str
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    bullets: list[ExperienceBulletCreate] = []
+    company: str = Field(..., min_length=1, max_length=255)
+    role: str = Field(..., min_length=1, max_length=255)
+    start_date: Optional[str] = Field(None, max_length=20)
+    end_date: Optional[str] = Field(None, max_length=20)
+    bullets: list[BulletCreate] = []
+
+
+class ExperienceUpdate(PatchModel):
+    required_fields = ("company", "role")
+    company: Optional[str] = Field(None, min_length=1, max_length=255)
+    role: Optional[str] = Field(None, min_length=1, max_length=255)
+    start_date: Optional[str] = Field(None, max_length=20)
+    end_date: Optional[str] = Field(None, max_length=20)
 
 
 class ExperienceOut(BaseModel):
@@ -107,7 +160,7 @@ class ExperienceOut(BaseModel):
     role: str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-    bullets: list[ExperienceBulletOut] = []
+    bullets: list[BulletOut] = []
     model_config = {"from_attributes": True}
 
 
@@ -116,20 +169,18 @@ class ExperienceOut(BaseModel):
 # ═══════════════════════════════════════════════════════════════
 
 
-class ProjectBulletCreate(BaseModel):
-    bullet_text: str
-
-
-class ProjectBulletOut(ProjectBulletCreate):
-    id: str
-    model_config = {"from_attributes": True}
-
-
 class ProjectCreate(BaseModel):
-    project_title: str
-    description: Optional[str] = None
-    tech_stack: Optional[str] = None
-    bullets: list[ProjectBulletCreate] = []
+    project_title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+    tech_stack: Optional[str] = Field(None, max_length=1000)
+    bullets: list[BulletCreate] = []
+
+
+class ProjectUpdate(PatchModel):
+    required_fields = ("project_title",)
+    project_title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+    tech_stack: Optional[str] = Field(None, max_length=1000)
 
 
 class ProjectOut(BaseModel):
@@ -137,7 +188,7 @@ class ProjectOut(BaseModel):
     project_title: str
     description: Optional[str] = None
     tech_stack: Optional[str] = None
-    bullets: list[ProjectBulletOut] = []
+    bullets: list[BulletOut] = []
     model_config = {"from_attributes": True}
 
 
@@ -147,9 +198,16 @@ class ProjectOut(BaseModel):
 
 
 class CertificationCreate(BaseModel):
-    name: str
-    issuing_organization: Optional[str] = None
-    year: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=255)
+    issuing_organization: Optional[str] = Field(None, max_length=255)
+    year: Optional[int] = Field(None, ge=1950, le=2100)
+
+
+class CertificationUpdate(PatchModel):
+    required_fields = ("name",)
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    issuing_organization: Optional[str] = Field(None, max_length=255)
+    year: Optional[int] = Field(None, ge=1950, le=2100)
 
 
 class CertificationOut(CertificationCreate):
@@ -163,9 +221,16 @@ class CertificationOut(CertificationCreate):
 
 
 class AchievementCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    category: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+    category: Optional[str] = Field(None, max_length=100)
+
+
+class AchievementUpdate(PatchModel):
+    required_fields = ("title",)
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+    category: Optional[str] = Field(None, max_length=100)
 
 
 class AchievementOut(AchievementCreate):
@@ -179,8 +244,14 @@ class AchievementOut(AchievementCreate):
 
 
 class ExternalProfileCreate(BaseModel):
-    platform: str
-    profile_url: str
+    platform: str = Field(..., min_length=1, max_length=100)
+    profile_url: str = Field(..., min_length=1, max_length=500)
+
+
+class ExternalProfileUpdate(PatchModel):
+    required_fields = ("platform", "profile_url")
+    platform: Optional[str] = Field(None, min_length=1, max_length=100)
+    profile_url: Optional[str] = Field(None, min_length=1, max_length=500)
 
 
 class ExternalProfileOut(ExternalProfileCreate):
@@ -193,14 +264,8 @@ class ExternalProfileOut(ExternalProfileCreate):
 # ═══════════════════════════════════════════════════════════════
 
 
-class ProfileCreate(BaseModel):
-    """Create profile for a user (user_id set via URL)."""
-    pass
-
-
 class ProfileOut(BaseModel):
     id: str
-    user_id: str
     created_at: datetime
     personal_info: Optional[PersonalInfoOut] = None
     education: list[EducationOut] = []
@@ -219,7 +284,7 @@ class ProfileOut(BaseModel):
 
 
 class JDSubmit(BaseModel):
-    raw_text: str = Field(..., min_length=20)
+    raw_text: str = Field(..., min_length=20, max_length=20000)
 
 
 class JDStructured(BaseModel):
@@ -244,16 +309,23 @@ class JDAnalysisOut(BaseModel):
 
 
 class ResumeGenerateRequest(BaseModel):
-    profile_id: str
-    jd_text: str = Field(..., min_length=20)
+    jd_text: str = Field(..., min_length=20, max_length=20000)
 
 
 class ResumeOut(BaseModel):
     id: str
-    profile_id: str
     jd_id: Optional[str] = None
     job_title: str
     version: int
-    file_path: Optional[str] = None
+    formats: list[str] = []
     created_at: datetime
-    model_config = {"from_attributes": True}
+
+
+class GenerateOut(BaseModel):
+    resume_id: str
+    job_title: str
+    version: int
+    formats: list[str]
+    jd_analysis: JDStructured
+    skill_confidence: dict[str, str]
+    keyword_coverage: dict[str, bool]

@@ -1,200 +1,99 @@
-"""Profile and section CRUD routes."""
+"""Routes for the signed-in user's profile and its sections."""
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
+from app.models.profile import (
+    Achievement, Certification, Education, Experience, ExternalProfile, Project, Skill,
+)
+from app.models.user import User
 from app.schemas import (
-    ProfileOut, EducationCreate, EducationOut,
-    SkillCreate, SkillOut, ExperienceCreate, ExperienceOut,
-    ProjectCreate, ProjectOut, CertificationCreate, CertificationOut,
-    AchievementCreate, AchievementOut, ExternalProfileCreate, ExternalProfileOut,
-    PersonalInfoCreate, PersonalInfoOut,
+    AchievementCreate, AchievementOut, AchievementUpdate,
+    BulletCreate, BulletOut,
+    CertificationCreate, CertificationOut, CertificationUpdate,
+    EducationCreate, EducationOut, EducationUpdate,
+    ExperienceCreate, ExperienceOut, ExperienceUpdate,
+    ExternalProfileCreate, ExternalProfileOut, ExternalProfileUpdate,
+    PersonalInfoCreate, PersonalInfoOut, ProfileOut,
+    ProjectCreate, ProjectOut, ProjectUpdate,
+    ReorderRequest,
+    SkillCreate, SkillOut, SkillUpdate,
 )
-from app.repositories import (
-    ProfileRepository, EducationRepo, SkillRepo, ExperienceRepo,
-    ExperienceBulletRepo, ProjectRepo, ProjectBulletRepo,
-    CertificationRepo, AchievementRepo, ExternalProfileRepo, PersonalInfoRepo,
-)
+from app.services import profile_service
 
 router = APIRouter()
 
 
-# ── Profile ───────────────────────────────────────────────────
+@router.get("", response_model=ProfileOut)
+def get_profile(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return profile_service.get_profile(db, user)
 
 
-@router.post("/{user_id}", response_model=ProfileOut, status_code=201)
-def create_profile(user_id: str, db: Session = Depends(get_db)):
-    return ProfileRepository.create(db, user_id)
-
-
-@router.get("/by-user/{user_id}", response_model=ProfileOut)
-def get_profile_by_user(user_id: str, db: Session = Depends(get_db)):
-    from fastapi import HTTPException
-    profiles = ProfileRepository.get_by_user(db, user_id)
-    if not profiles:
-        raise HTTPException(status_code=404, detail="No profile found for this user")
-    return profiles[0]
-
-
-@router.get("/{profile_id}", response_model=ProfileOut)
-def get_profile(profile_id: str, db: Session = Depends(get_db)):
-    return ProfileRepository.get(db, profile_id)
-
-
-@router.delete("/{profile_id}", status_code=204)
-def delete_profile(profile_id: str, db: Session = Depends(get_db)):
-    ProfileRepository.delete(db, profile_id)
-
-
-# ── Personal Info ─────────────────────────────────────────────
-
-
-@router.put("/{profile_id}/personal-info", response_model=PersonalInfoOut)
+@router.put("/personal-info", response_model=PersonalInfoOut)
 def upsert_personal_info(
-    profile_id: str, payload: PersonalInfoCreate, db: Session = Depends(get_db)
+    payload: PersonalInfoCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db),
 ):
-    return PersonalInfoRepo.upsert(db, profile_id, **payload.model_dump())
+    return profile_service.upsert_personal_info(db, user, payload.model_dump())
 
 
-# ── Education ─────────────────────────────────────────────────
+def _add_section_routes(
+    path: str, model, create_schema: type[BaseModel], update_schema, out_schema,
+) -> None:
+    """Register create, update, delete, and reorder routes for one profile section."""
+
+    def create(payload: create_schema, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        fields = payload.model_dump(exclude={"bullets"})
+        bullets = [b.bullet_text for b in getattr(payload, "bullets", [])]
+        return profile_service.create_item(db, user, model, fields, bullets)
+
+    def update(item_id: str, payload: update_schema, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        return profile_service.update_item(db, user, model, item_id, payload.changes())
+
+    def delete(item_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        profile_service.delete_item(db, user, model, item_id)
+
+    def reorder(payload: ReorderRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        profile_service.reorder_items(db, user, model, payload.ids)
+
+    name = path.replace("-", "_")
+    router.add_api_route(f"/{path}", create, methods=["POST"], response_model=out_schema, status_code=201, name=f"create_{name}")
+    router.add_api_route(f"/{path}/order", reorder, methods=["PUT"], status_code=204, name=f"reorder_{name}")
+    router.add_api_route(f"/{path}/{{item_id}}", update, methods=["PATCH"], response_model=out_schema, name=f"update_{name}")
+    router.add_api_route(f"/{path}/{{item_id}}", delete, methods=["DELETE"], status_code=204, name=f"delete_{name}")
 
 
-@router.post("/{profile_id}/education", response_model=EducationOut, status_code=201)
-def add_education(profile_id: str, payload: EducationCreate, db: Session = Depends(get_db)):
-    return EducationRepo.create(db, profile_id, **payload.model_dump())
+def _add_bullet_routes(path: str, parent_model) -> None:
+    """Register bullet routes nested under experience or project entries."""
+
+    def add(item_id: str, payload: BulletCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        return profile_service.add_bullet(db, user, parent_model, item_id, payload.bullet_text)
+
+    def reorder(item_id: str, payload: ReorderRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        profile_service.reorder_bullets(db, user, parent_model, item_id, payload.ids)
+
+    def update(bullet_id: str, payload: BulletCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        return profile_service.update_bullet(db, user, parent_model, bullet_id, payload.bullet_text)
+
+    def delete(bullet_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        profile_service.delete_bullet(db, user, parent_model, bullet_id)
+
+    name = path.replace("-", "_")
+    router.add_api_route(f"/{path}/{{item_id}}/bullets", add, methods=["POST"], response_model=BulletOut, status_code=201, name=f"add_{name}_bullet")
+    router.add_api_route(f"/{path}/{{item_id}}/bullets/order", reorder, methods=["PUT"], status_code=204, name=f"reorder_{name}_bullets")
+    router.add_api_route(f"/{path}/bullets/{{bullet_id}}", update, methods=["PATCH"], response_model=BulletOut, name=f"update_{name}_bullet")
+    router.add_api_route(f"/{path}/bullets/{{bullet_id}}", delete, methods=["DELETE"], status_code=204, name=f"delete_{name}_bullet")
 
 
-@router.get("/{profile_id}/education", response_model=list[EducationOut])
-def list_education(profile_id: str, db: Session = Depends(get_db)):
-    return EducationRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/education/{edu_id}", status_code=204)
-def delete_education(edu_id: str, db: Session = Depends(get_db)):
-    EducationRepo.delete(db, edu_id)
-
-
-# ── Skills ────────────────────────────────────────────────────
-
-
-@router.post("/{profile_id}/skills", response_model=SkillOut, status_code=201)
-def add_skill(profile_id: str, payload: SkillCreate, db: Session = Depends(get_db)):
-    return SkillRepo.create(db, profile_id, **payload.model_dump())
-
-
-@router.get("/{profile_id}/skills", response_model=list[SkillOut])
-def list_skills(profile_id: str, db: Session = Depends(get_db)):
-    return SkillRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/skills/{skill_id}", status_code=204)
-def delete_skill(skill_id: str, db: Session = Depends(get_db)):
-    SkillRepo.delete(db, skill_id)
-
-
-# ── Experience ────────────────────────────────────────────────
-
-
-@router.post("/{profile_id}/experience", response_model=ExperienceOut, status_code=201)
-def add_experience(profile_id: str, payload: ExperienceCreate, db: Session = Depends(get_db)):
-    exp = ExperienceRepo.create(
-        db, profile_id,
-        company=payload.company, role=payload.role,
-        start_date=payload.start_date, end_date=payload.end_date,
-    )
-    for b in payload.bullets:
-        ExperienceBulletRepo.create(db, exp.id, bullet_text=b.bullet_text)
-    db.refresh(exp)
-    return exp
-
-
-@router.get("/{profile_id}/experience", response_model=list[ExperienceOut])
-def list_experience(profile_id: str, db: Session = Depends(get_db)):
-    return ExperienceRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/experience/{exp_id}", status_code=204)
-def delete_experience(exp_id: str, db: Session = Depends(get_db)):
-    ExperienceRepo.delete(db, exp_id)
-
-
-# ── Projects ──────────────────────────────────────────────────
-
-
-@router.post("/{profile_id}/projects", response_model=ProjectOut, status_code=201)
-def add_project(profile_id: str, payload: ProjectCreate, db: Session = Depends(get_db)):
-    proj = ProjectRepo.create(
-        db, profile_id,
-        project_title=payload.project_title,
-        description=payload.description,
-        tech_stack=payload.tech_stack,
-    )
-    for b in payload.bullets:
-        ProjectBulletRepo.create(db, proj.id, bullet_text=b.bullet_text)
-    db.refresh(proj)
-    return proj
-
-
-@router.get("/{profile_id}/projects", response_model=list[ProjectOut])
-def list_projects(profile_id: str, db: Session = Depends(get_db)):
-    return ProjectRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/projects/{proj_id}", status_code=204)
-def delete_project(proj_id: str, db: Session = Depends(get_db)):
-    ProjectRepo.delete(db, proj_id)
-
-
-# ── Certifications ────────────────────────────────────────────
-
-
-@router.post("/{profile_id}/certifications", response_model=CertificationOut, status_code=201)
-def add_certification(profile_id: str, payload: CertificationCreate, db: Session = Depends(get_db)):
-    return CertificationRepo.create(db, profile_id, **payload.model_dump())
-
-
-@router.get("/{profile_id}/certifications", response_model=list[CertificationOut])
-def list_certifications(profile_id: str, db: Session = Depends(get_db)):
-    return CertificationRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/certifications/{cert_id}", status_code=204)
-def delete_certification(cert_id: str, db: Session = Depends(get_db)):
-    CertificationRepo.delete(db, cert_id)
-
-
-# ── Achievements ──────────────────────────────────────────────
-
-
-@router.post("/{profile_id}/achievements", response_model=AchievementOut, status_code=201)
-def add_achievement(profile_id: str, payload: AchievementCreate, db: Session = Depends(get_db)):
-    return AchievementRepo.create(db, profile_id, **payload.model_dump())
-
-
-@router.get("/{profile_id}/achievements", response_model=list[AchievementOut])
-def list_achievements(profile_id: str, db: Session = Depends(get_db)):
-    return AchievementRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/achievements/{ach_id}", status_code=204)
-def delete_achievement(ach_id: str, db: Session = Depends(get_db)):
-    AchievementRepo.delete(db, ach_id)
-
-
-# ── External Profiles ─────────────────────────────────────────
-
-
-@router.post("/{profile_id}/external-profiles", response_model=ExternalProfileOut, status_code=201)
-def add_external_profile(profile_id: str, payload: ExternalProfileCreate, db: Session = Depends(get_db)):
-    return ExternalProfileRepo.create(db, profile_id, **payload.model_dump())
-
-
-@router.get("/{profile_id}/external-profiles", response_model=list[ExternalProfileOut])
-def list_external_profiles(profile_id: str, db: Session = Depends(get_db)):
-    return ExternalProfileRepo.list_by_parent(db, profile_id)
-
-
-@router.delete("/external-profiles/{ep_id}", status_code=204)
-def delete_external_profile(ep_id: str, db: Session = Depends(get_db)):
-    ExternalProfileRepo.delete(db, ep_id)
+# Bullet routes first so "/experience/bullets/{id}" is not captured by "/experience/{item_id}".
+_add_bullet_routes("experience", Experience)
+_add_bullet_routes("projects", Project)
+_add_section_routes("education", Education, EducationCreate, EducationUpdate, EducationOut)
+_add_section_routes("skills", Skill, SkillCreate, SkillUpdate, SkillOut)
+_add_section_routes("experience", Experience, ExperienceCreate, ExperienceUpdate, ExperienceOut)
+_add_section_routes("projects", Project, ProjectCreate, ProjectUpdate, ProjectOut)
+_add_section_routes("certifications", Certification, CertificationCreate, CertificationUpdate, CertificationOut)
+_add_section_routes("achievements", Achievement, AchievementCreate, AchievementUpdate, AchievementOut)
+_add_section_routes("external-profiles", ExternalProfile, ExternalProfileCreate, ExternalProfileUpdate, ExternalProfileOut)

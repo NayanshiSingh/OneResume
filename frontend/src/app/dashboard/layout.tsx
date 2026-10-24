@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
     LayoutGrid,
     User,
@@ -9,9 +9,10 @@ import {
     Sparkles,
     FileText,
     ArrowLeft,
+    LogOut,
 } from "lucide-react";
 import styles from "./layout.module.css";
-import { Suspense } from "react";
+import { SessionProvider, useSession } from "@/lib/session";
 
 const NAV_ITEMS = [
     { href: "/dashboard", label: "OVERVIEW", icon: LayoutGrid, tag: "SYS_00" },
@@ -38,8 +39,7 @@ const NAV_ITEMS = [
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const userId = searchParams.get("user_id") || "";
+    const { user, signOut } = useSession();
 
     return (
         <div className={styles.shell}>
@@ -60,13 +60,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                         const isActive =
                             pathname === item.href ||
                             (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                        const href = userId
-                            ? `${item.href}?user_id=${userId}`
-                            : item.href;
                         return (
                             <Link
                                 key={item.href}
-                                href={href}
+                                href={item.href}
                                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
                             >
                                 <span className={styles.navTag}>{item.tag}</span>
@@ -78,10 +75,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className={styles.sidebarBottom}>
-                    <span className="mono-label">STATUS: OPERATIONAL</span>
-                    <span className="mono-label" style={{ color: "#22c55e" }}>
-                        ● SYSTEM_ONLINE
-                    </span>
+                    <span className="mono-label">{user.email}</span>
+                    <button className="btn-outline btn-sm" onClick={signOut}>
+                        <LogOut size={12} /> SIGN OUT
+                    </button>
                 </div>
             </aside>
 
@@ -97,8 +94,8 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <SessionProvider>
             <DashboardShell>{children}</DashboardShell>
-        </Suspense>
+        </SessionProvider>
     );
 }

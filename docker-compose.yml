@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: oneresume
+      POSTGRES_PASSWORD: oneresume
+      POSTGRES_DB: oneresume
+    ports:
+      - "5433:5432"
+    volumes:
+      - oneresume-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oneresume"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  oneresume-db:

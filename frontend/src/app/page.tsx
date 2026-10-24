@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import GeometricCard from "@/components/GeometricCard";
-import { usersApi } from "@/lib/api";
+import { authApi } from "@/lib/api";
 import styles from "./page.module.css";
 
 export default function LandingPage() {
@@ -12,6 +13,7 @@ export default function LandingPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "register">("signin");
   const router = useRouter();
 
   async function handleJoin() {
@@ -19,22 +21,17 @@ export default function LandingPage() {
       setError("Please enter both email and password.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (mode === "register" && password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const user = await usersApi.loginOrRegister({ email, password });
-      router.push(`/dashboard?user_id=${user.id}`);
+      await (mode === "register" ? authApi.register : authApi.login)({ email, password });
+      router.push("/dashboard");
     } catch (err: unknown) {
-      const msg = (err as Error).message;
-      if (msg.includes("401")) {
-        setError("Invalid password. Please try again.");
-      } else {
-        setError(msg);
-      }
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -94,10 +91,21 @@ export default function LandingPage() {
             onClick={handleJoin}
             disabled={loading}
           >
-            {loading ? "ACCESSING..." : "GET ACCESS"}
+            {loading ? "ACCESSING..." : mode === "register" ? "CREATE ACCOUNT" : "SIGN IN"}
           </button>
         </div>
       </section>
+
+      <div className={styles.authLinks}>
+        <button
+          type="button"
+          className={styles.authLink}
+          onClick={() => { setMode(mode === "register" ? "signin" : "register"); setError(""); }}
+        >
+          {mode === "register" ? "Already have an account? Sign in" : "New here? Create an account"}
+        </button>
+        <Link href="/forgot-password" className={styles.authLink}>Forgot password?</Link>
+      </div>
 
       {/* ── Error Message ────────────────────────────────────── */}
       {error && (
@@ -145,7 +153,7 @@ export default function LandingPage() {
           <GeometricCard
             tag="SYSTEM_06"
             title="INSTANT EXPORT"
-            subtitle="Generate beautifully formatted resumes via LaTeX rendering. Download as PDF or DOCX in seconds."
+            subtitle="Generate clean, single-column resumes that applicant tracking systems can read. Download as PDF or DOCX."
           />
         </div>
       </section>
