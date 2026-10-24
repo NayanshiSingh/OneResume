@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "notes": "Synthetic job descriptions for fictional companies. Each one is written for this evaluation set and modelled on the structure and typical requirements of the public postings listed in modeled_on; none is a copy. requirements is the reviewed answer key for JD analysis.",
+  "notes": "Synthetic job descriptions for fictional companies. Each one is written for this evaluation set and modelled on the structure and typical requirements of the public postings listed in modeled_on; none is a copy. requirements is the reviewed answer key for JD analysis. any_of lists the words a user would type for a requirement when reviewing it; years of experience, degrees, eligibility, and structural requirements (an internship, personal projects) have none because word matching cannot judge them.",
   "jds": [
     {
       "id": "JD01",
@@ -89,7 +89,7 @@
         {"id": "JD04.R2", "text": "Go or Java", "type": "required", "kind": "skill", "any_of": ["Go", "Java"]},
         {"id": "JD04.R3", "text": "Kafka or comparable event streaming in production", "type": "required", "kind": "skill", "any_of": ["Kafka", "Kinesis", "Pulsar"]},
         {"id": "JD04.R4", "text": "Kubernetes in production", "type": "required", "kind": "skill", "any_of": ["Kubernetes"]},
-        {"id": "JD04.R5", "text": "Mentoring engineers and leading technical projects", "type": "required", "kind": "experience"},
+        {"id": "JD04.R5", "text": "Mentoring engineers and leading technical projects", "type": "required", "kind": "experience", "any_of": ["mentoring", "mentor"]},
         {"id": "JD04.R6", "text": "Time-series databases", "type": "preferred", "kind": "skill", "any_of": ["TimescaleDB", "InfluxDB"]},
         {"id": "JD04.R7", "text": "Terraform", "type": "preferred", "kind": "skill", "any_of": ["Terraform"]}
       ]
@@ -136,7 +136,7 @@
         {"id": "JD06.R5", "text": "PostgreSQL or another relational database", "type": "required", "kind": "skill", "any_of": ["PostgreSQL", "MySQL", "SQL"]},
         {"id": "JD06.R6", "text": "Cloud deployment, preferably AWS", "type": "required", "kind": "skill", "any_of": ["AWS", "GCP", "Azure", "Heroku", "Vercel", "Render"]},
         {"id": "JD06.R7", "text": "GraphQL", "type": "preferred", "kind": "skill", "any_of": ["GraphQL"]},
-        {"id": "JD06.R8", "text": "Healthcare data or HIPAA-regulated systems", "type": "preferred", "kind": "experience"},
+        {"id": "JD06.R8", "text": "Healthcare data or HIPAA-regulated systems", "type": "preferred", "kind": "experience", "any_of": ["HIPAA", "healthcare"]},
         {"id": "JD06.R9", "text": "End-to-end testing with Cypress or Playwright", "type": "preferred", "kind": "skill", "any_of": ["Cypress", "Playwright"]}
       ]
     },
@@ -160,7 +160,7 @@
         {"id": "JD07.R6", "text": "JUnit", "type": "required", "kind": "skill", "any_of": ["JUnit"]},
         {"id": "JD07.R7", "text": "Docker and Kubernetes", "type": "preferred", "kind": "skill", "any_of": ["Docker", "Kubernetes"]},
         {"id": "JD07.R8", "text": "Kafka", "type": "preferred", "kind": "skill", "any_of": ["Kafka"]},
-        {"id": "JD07.R9", "text": "Agile development", "type": "preferred", "kind": "experience"}
+        {"id": "JD07.R9", "text": "Agile development", "type": "preferred", "kind": "experience", "any_of": ["Agile", "Scrum"]}
       ]
     },
     {
@@ -292,9 +292,9 @@
         {"id": "JD13.R1", "text": "Strong SQL", "type": "required", "kind": "skill", "any_of": ["SQL", "PostgreSQL", "MySQL"]},
         {"id": "JD13.R2", "text": "R or Python for statistical analysis", "type": "required", "kind": "skill", "any_of": ["R", "Python"]},
         {"id": "JD13.R3", "text": "Tableau or Power BI dashboards", "type": "required", "kind": "skill", "any_of": ["Tableau", "Power BI"]},
-        {"id": "JD13.R4", "text": "Communication with non-technical stakeholders", "type": "required", "kind": "experience"},
+        {"id": "JD13.R4", "text": "Communication with non-technical stakeholders", "type": "required", "kind": "experience", "any_of": ["stakeholders"]},
         {"id": "JD13.R5", "text": "dbt", "type": "preferred", "kind": "skill", "any_of": ["dbt"]},
-        {"id": "JD13.R6", "text": "Retail or supply-chain data", "type": "preferred", "kind": "experience"}
+        {"id": "JD13.R6", "text": "Retail or supply-chain data", "type": "preferred", "kind": "experience", "any_of": ["retail", "supply chain"]}
       ]
     },
     {
@@ -307,7 +307,7 @@
       "text": "Software Engineer at a fast-growing startup.\n\nWe're a small team building something big. Must know coding and be able to move fast. You'll wear many hats and ship every day. Startup experience is a plus.",
       "requirements": [
         {"id": "JD14.R1", "text": "General programming ability", "type": "required", "kind": "skill"},
-        {"id": "JD14.R2", "text": "Startup experience", "type": "preferred", "kind": "experience"}
+        {"id": "JD14.R2", "text": "Startup experience", "type": "preferred", "kind": "experience", "any_of": ["startup"]}
       ]
     },
     {
@@ -349,9 +349,9 @@
         {"id": "JD16.R2", "text": "Python or Go", "type": "required", "kind": "skill", "any_of": ["Python", "Go"]},
         {"id": "JD16.R3", "text": "CI systems", "type": "required", "kind": "skill", "any_of": ["GitHub Actions", "Jenkins", "GitLab CI", "CI/CD"]},
         {"id": "JD16.R4", "text": "Linux command line", "type": "required", "kind": "skill", "any_of": ["Linux"]},
-        {"id": "JD16.R5", "text": "Clear technical writing", "type": "required", "kind": "experience"},
+        {"id": "JD16.R5", "text": "Clear technical writing", "type": "required", "kind": "experience", "any_of": ["technical writing", "documentation"]},
         {"id": "JD16.R6", "text": "Docker", "type": "preferred", "kind": "skill", "any_of": ["Docker"]},
-        {"id": "JD16.R7", "text": "Building command-line tools", "type": "preferred", "kind": "experience"}
+        {"id": "JD16.R7", "text": "Building command-line tools", "type": "preferred", "kind": "experience", "any_of": ["command-line", "CLI"]}
       ]
     },
     {
@@ -372,7 +372,7 @@
         {"id": "JD17.R4", "text": "API testing", "type": "required", "kind": "skill", "any_of": ["Postman", "REST Assured", "API Testing"]},
         {"id": "JD17.R5", "text": "Running tests in CI", "type": "required", "kind": "skill", "any_of": ["CI/CD", "GitHub Actions", "Jenkins"]},
         {"id": "JD17.R6", "text": "Performance testing", "type": "preferred", "kind": "skill", "any_of": ["k6", "JMeter"]},
-        {"id": "JD17.R7", "text": "E-commerce or payments testing", "type": "preferred", "kind": "experience"}
+        {"id": "JD17.R7", "text": "E-commerce or payments testing", "type": "preferred", "kind": "experience", "any_of": ["e-commerce", "ecommerce", "payments"]}
       ]
     },
     {
@@ -409,9 +409,9 @@
         {"id": "JD19.R1", "text": "0-2 years in software, IT support, or technical operations", "type": "required", "kind": "experience"},
         {"id": "JD19.R2", "text": "SQL", "type": "required", "kind": "skill", "any_of": ["SQL", "PostgreSQL", "MySQL"]},
         {"id": "JD19.R3", "text": "Scripting in Python or JavaScript", "type": "required", "kind": "skill", "any_of": ["Python", "JavaScript"]},
-        {"id": "JD19.R4", "text": "Troubleshooting", "type": "required", "kind": "experience"},
-        {"id": "JD19.R5", "text": "Customer communication", "type": "required", "kind": "experience"},
-        {"id": "JD19.R6", "text": "Logistics, warehousing, or supply chain", "type": "preferred", "kind": "experience"},
+        {"id": "JD19.R4", "text": "Troubleshooting", "type": "required", "kind": "experience", "any_of": ["troubleshooting"]},
+        {"id": "JD19.R5", "text": "Customer communication", "type": "required", "kind": "experience", "any_of": ["customer"]},
+        {"id": "JD19.R6", "text": "Logistics, warehousing, or supply chain", "type": "preferred", "kind": "experience", "any_of": ["logistics", "warehousing", "warehouse", "supply chain"]},
         {"id": "JD19.R7", "text": "Basic web development", "type": "preferred", "kind": "skill", "any_of": ["HTML", "CSS", "JavaScript"]},
         {"id": "JD19.R8", "text": "Jira or Zendesk", "type": "preferred", "kind": "skill", "any_of": ["Jira", "Zendesk"]}
       ]
@@ -432,7 +432,7 @@
         {"id": "JD20.R3", "text": "Automated testing (RSpec or similar)", "type": "required", "kind": "skill", "any_of": ["RSpec", "Jest", "Unit Testing"]},
         {"id": "JD20.R4", "text": "JavaScript", "type": "required", "kind": "skill", "any_of": ["JavaScript"]},
         {"id": "JD20.R5", "text": "React", "type": "preferred", "kind": "skill", "any_of": ["React"]},
-        {"id": "JD20.R6", "text": "Payments or subscriptions", "type": "preferred", "kind": "experience"},
+        {"id": "JD20.R6", "text": "Payments or subscriptions", "type": "preferred", "kind": "experience", "any_of": ["payments", "subscriptions"]},
         {"id": "JD20.R7", "text": "Sidekiq or background jobs", "type": "preferred", "kind": "skill", "any_of": ["Sidekiq", "Celery"]}
       ]
     }
