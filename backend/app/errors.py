@@ -15,3 +15,11 @@ class InvalidRequestError(Exception):
 
 class ProviderUnavailableError(Exception):
     """An external AI provider is not configured or cannot be reached."""
+
+
+class RateLimitedError(Exception):
+    """A limit was reached; the caller may try again after retry_after seconds."""
+
+    def __init__(self, message: str, retry_after: int):
+        super().__init__(message)
+        self.retry_after = retry_after
