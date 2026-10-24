@@ -32,15 +32,15 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 
 | Feature | Description |
 |---|---|
-| 🧑‍💼 **Centralized Profile** | Store all your professional data once — education, experience, projects, skills, certifications, achievements, and external profiles |
-| 📋 **Intelligent JD Analysis** | Paste any job description and let Gemini extract structured data: role title, required skills, keywords, experience level, and role category |
+| 🧑‍💼 **Centralized Profile** | Store all your professional data once — or import it from a PDF/DOCX resume and correct it before saving |
+| 📋 **Reviewed JD Analysis** | Gemini (or labelled basic rules) extracts requirements; you correct them before anything is generated |
 | 🔗 **Semantic Matching** | 1024-dimensional multilingual embeddings power cosine-similarity scoring to match your profile against each JD |
 | 🏆 **Composite Relevance Scoring** | Multi-factor scoring engine weighing semantic similarity, skill importance, section priority, recency, and ATS keyword overlap |
-| ✍️ **LLM-Powered Rewriting** | Gemini rewrites your resume bullets to be concise, impactful, and ATS-friendly — without fabricating any skills or experience |
-| 📊 **ATS Optimization Engine** | Rule-based engine enforces keyword coverage, section ordering, bullet limits, and formatting constraints |
+| ✍️ **Your Wording, Your Approval** | Drafts use your own bullets; you include, hide, pin, or edit them, then approve a specific revision before export |
+| 📊 **ATS-Friendly Output** | Single-column template with standard headings and selectable text |
 | 📥 **Multi-Format Export** | Download your resume as **PDF** (HTML template rendered with WeasyPrint) or **DOCX** — professionally formatted and ready to submit |
-| 🔄 **Resume Versioning** | Every generated resume is stored with version metadata, enabling comparison and rollback |
-| 🛡️ **Skill Confidence Tracking** | Transparent confidence flags (strong / inferred / weak) for every must-have skill — the system never hallucinates |
+| 🔄 **Resume Versioning** | Each exported revision is stored as a new version with its files |
+| 🛡️ **Evidence Labels** | Every requirement is *supported*, *needs confirmation* (skills list only), or *not found* — gaps are shown, never filled in |
 
 ---
 
@@ -212,17 +212,21 @@ OneResume/
 │   │   ├── routers/
 │   │   │   ├── auth.py                # /api/auth — register, sign in/out, password reset, account deletion
 │   │   │   ├── profiles.py            # /api/profile — the signed-in user's profile and sections
-│   │   │   ├── jd.py                  # /api/jd — JD submission & analysis
-│   │   │   └── resumes.py             # /api/resumes — resume generation & download
+│   │   │   ├── jd.py                  # /api/jd — analysis, review, coverage
+│   │   │   ├── drafts.py              # /api/drafts — request, edit, approve, export
+│   │   │   ├── jobs.py                # /api/jobs — background job status and retry
+│   │   │   └── resumes.py             # /api/resumes — exported resumes and downloads
 │   │   ├── schemas/                   # Pydantic request/response schemas
 │   │   ├── services/
-│   │   │   ├── orchestrator.py        # End-to-end pipeline controller
+│   │   │   ├── draft_service.py       # Build, edit, approve, and export drafts
+│   │   │   ├── job_service.py         # Database-backed background jobs
+│   │   │   ├── evidence_service.py    # Requirement evidence labels (token-aware)
+│   │   │   ├── import_service.py      # PDF/DOCX resume import (Gemini + fallback)
 │   │   │   ├── jd_analyzer.py         # JD → structured data (Gemini + fallback)
 │   │   │   ├── embedding_service.py   # Text → 1024D vectors (Pinecone)
 │   │   │   ├── scoring_engine.py      # Composite relevance scoring
-│   │   │   ├── relevance_selector.py  # Top-N section / Top-K bullet selection
-│   │   │   ├── llm_service.py         # Bullet rewriting (Gemini + fallback)
-│   │   │   ├── ats_optimizer.py       # Rule-based ATS optimization
+│   │   │   ├── relevance_selector.py  # Draft content: what starts included, in profile order
+│   │   │   ├── llm_service.py         # Bullet rewriting (not used by drafts yet)
 │   │   │   ├── resume_assembler.py    # Final resume data assembly
 │   │   │   ├── pdf_renderer.py        # HTML template → PDF (WeasyPrint)
 │   │   │   └── export_service.py      # DOCX export (python-docx)
@@ -242,8 +246,9 @@ OneResume/
 │   │   │       ├── page.tsx           # Dashboard — resume overview
 │   │   │       ├── layout.tsx         # Dashboard layout with sidebar
 │   │   │       ├── profile/           # Profile management page
-│   │   │       ├── analyze/           # JD analysis page
-│   │   │       ├── generate/          # Resume generation page
+│   │   │       ├── import/            # Resume upload and review
+│   │   │       ├── analyze/           # Job description review and coverage
+│   │   │       ├── drafts/            # Draft list and review page
 │   │   │       └── resumes/           # Resume history & download
 │   │   ├── components/
 │   │   │   ├── Navbar.tsx             # Navigation bar
@@ -260,42 +265,32 @@ OneResume/
 
 ---
 
-## 🔄 Resume Generation Pipeline
+## 🔄 From Job Description to Resume
 
-The orchestrator service (`orchestrator.py`) manages a deterministic, 10-step pipeline:
+Resumes are proposals you review and approve before anything is exported:
 
 ```mermaid
 graph TD
-    A["1️⃣ Fetch User Profile"] --> B["2️⃣ Analyze Job Description"]
-    B --> C["3️⃣ Store JD Analysis"]
-    C --> D["4️⃣ Generate JD Embedding"]
-    D --> E["5️⃣ Ensure Profile Embeddings"]
-    E --> F["6️⃣ Select Relevant Content"]
-    F --> G["7️⃣ LLM Bullet Rewriting"]
-    G --> H["8️⃣ ATS Optimization"]
-    H --> I["9️⃣ Assemble Resume"]
-    I --> J["🔟 Render & Export"]
-
-    style A fill:#1a1a2e,stroke:#e94560,color:#fff
-    style B fill:#1a1a2e,stroke:#e94560,color:#fff
-    style F fill:#16213e,stroke:#0f3460,color:#fff
-    style G fill:#16213e,stroke:#0f3460,color:#fff
-    style H fill:#0f3460,stroke:#53354a,color:#fff
-    style J fill:#0f3460,stroke:#53354a,color:#fff
+    A["Paste job description"] --> B["Analysis (Gemini, or labelled basic rules)"]
+    B --> C["You review and correct requirements"]
+    C --> D["Coverage preview: supported / needs confirmation / not found"]
+    D --> E["Draft job queued; worker builds draft"]
+    E --> F["You include, hide, pin, or edit bullets"]
+    F --> G["Approve this revision"]
+    G --> H["Export PDF + DOCX to private storage"]
 ```
 
 | Step | Service | What Happens |
 |---|---|---|
-| 1 | `ProfileRepository` | Fetches the user's complete profile from the database |
-| 2 | `jd_analyzer.py` | Gemini extracts structured JD data (or rule-based fallback) |
-| 3 | `JDAnalysisRepo` | Structured JD + raw text persisted to database |
-| 4 | `embedding_service.py` | Composite JD text → 1024D embedding via Pinecone |
-| 5 | `embedding_service.py` | All profile bullets without embeddings are embedded and stored |
-| 6 | `relevance_selector.py` | Scores all sections/bullets, selects top-N/top-K, checks skill confidence |
-| 7 | `llm_service.py` | Gemini rewrites selected bullets (with fallback to rule-based) |
-| 8 | `ats_optimizer.py` | Enforces section limits, bullet limits, keyword coverage tracking |
-| 9 | `resume_assembler.py` | Assembles final resume data structure |
-| 10 | `pdf_renderer.py` / `export_service.py` | Renders PDF and DOCX into private storage; a format that fails to render is not offered |
+| Analysis | `jd_analyzer.py`, `jd_service.py` | Gemini extracts requirements; without a key (or on failure) a rule-based analysis runs and is labelled basic. Text aimed at AI tools ("ignore previous instructions") is removed and flagged |
+| Review | `PUT /api/jd/{id}` | The user's corrected requirements replace the analysis |
+| Coverage | `evidence_service.py` | Token-aware matching labels each requirement: *supported* (an experience, project, education, certification, or achievement mentions it), *needs confirmation* (only the skills list does), or *not found*. Java never matches JavaScript; C never matches C# |
+| Draft job | `job_service.py`, `app/worker.py` | A database-backed job with an idempotency key; the worker builds the draft and failed jobs can be retried |
+| Selection | `relevance_selector.py`, `scoring_engine.py` | Every entry is kept so it can be restored; scores decide what starts included. Entries keep profile order; wording is the user's own. Embeddings are used when Pinecone is configured, otherwise labelled exact-word matching |
+| Review and approval | `draft_service.py` | Edits create a new revision and clear approval; edited bullets are marked as user-supplied |
+| Export | `resume_assembler.py`, `pdf_renderer.py`, `export_service.py` | Only the approved revision is exported, once per revision, as a new resume version |
+
+Without API keys every step still works in a clearly labelled basic mode.
 
 ---
 
@@ -337,6 +332,9 @@ alembic upgrade head
 # Start the backend server
 # macOS: WeasyPrint needs Homebrew's libraries on the loader path
 DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib uvicorn app.main:app --reload --port 8000
+
+# In a second terminal: the worker that builds drafts
+DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib python -m app.worker
 ```
 
 ### 3. Frontend Setup
@@ -353,7 +351,7 @@ npm run dev
 
 Open `http://localhost:3000`. Next.js proxies `/api/*` to the backend (`BACKEND_URL`, default `http://localhost:8000`), so the session cookie stays first-party.
 
-Without `PINECONE_API_KEY`, resume generation returns a 503 explaining that the embedding service is not configured. Without `GEMINI_API_KEY`, JD analysis and bullet rewriting use rule-based fallbacks.
+Without `GEMINI_API_KEY`, resume import and JD analysis use rule-based parsing. Without `PINECONE_API_KEY`, drafts use exact-word matching. Both are labelled "basic mode" in the app; nothing is downgraded silently. Drafts always keep your own wording.
 
 Password reset emails are written to the backend log in development.
 
@@ -392,14 +390,15 @@ pytest tests/test_integration.py
 | `test_profile_api.py` | Profile editing, ordering, and stale-embedding invalidation |
 | `test_exports.py` | Private artifact storage, correct download formats, template escaping |
 | `test_migrations.py` | Alembic migrations match the models |
+| `test_evidence_service.py` | Token-aware evidence labels |
+| `test_import.py` | Resume import parsing, preview, and apply |
+| `test_jobs.py` | Background jobs: idempotency, failure, retry, stale reclaim |
+| `test_drafts.py` | Draft selection, edits, approval by revision, export |
 | `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
 | `test_embedding_service.py` | Embedding generation & cosine similarity |
 | `test_scoring_engine.py` | Composite scoring formula |
-| `test_relevance_selector.py` | Content selection & skill confidence |
 | `test_llm_service.py` | Bullet rewriting (Gemini + fallback) |
-| `test_ats_optimizer.py` | ATS constraints & keyword coverage |
 | `test_resume_assembler.py` | Resume data assembly |
-| `test_integration.py` | End-to-end pipeline integration |
 | `test_edge_cases.py` | Edge cases & error handling |
 
 ---
@@ -419,7 +418,13 @@ pytest tests/test_integration.py
 | `PUT` | `/api/profile/{section}/order` | Reorder a section |
 | `POST` / `PATCH` / `DELETE` / `PUT` | `/api/profile/{experience\|projects}/…/bullets` | Add, edit, remove, and reorder bullets |
 | `POST` | `/api/jd/analyze` | Submit and analyze a job description |
-| `POST` | `/api/resumes/generate` | Generate a tailored resume |
+| `POST` | `/api/profile/import` → `/api/profile/import/apply` | Preview an uploaded PDF/DOCX, then save the reviewed result |
+| `PUT` | `/api/jd/{id}` | Save reviewed requirements |
+| `GET` | `/api/jd/{id}/coverage` | Evidence label for each requirement |
+| `POST` | `/api/drafts` | Queue a draft (returns a job; poll `GET /api/jobs/{id}`) |
+| `GET` / `PATCH` / `DELETE` | `/api/drafts/{id}` | Read, edit (include, pin, edit or revert bullets), or delete a draft |
+| `POST` | `/api/drafts/{id}/approve` / `export` | Approve the current revision, then export it |
+| `GET` | `/api/system/ai-status` | Which AI providers are configured |
 | `GET` | `/api/resumes` / `/api/resumes/{id}` | List / fetch resumes with available formats |
 | `GET` | `/api/resumes/{id}/download?format=pdf\|docx` | Download a generated file |
 | `DELETE` | `/api/resumes/{id}` | Delete a resume and its files |

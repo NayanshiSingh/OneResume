@@ -1,0 +1,54 @@
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 40px;
+  margin-top: 8px;
+}
+
+.uploadRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.errorBar {
+  padding: 12px 16px;
+  border: 1px solid #ef4444;
+  margin-bottom: 16px;
+}
+
+.section {
+  border-top: var(--hairline);
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 12px;
+  border: var(--hairline);
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.flag {
+  color: #ca8a04;
+}
+
+.flaggedInput {
+  border-color: #eab308;
+}

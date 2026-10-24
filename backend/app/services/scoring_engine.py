@@ -13,6 +13,7 @@ from datetime import datetime
 
 from app.domain.resume_draft import JDData
 from app.services.embedding_service import cosine_similarity
+from app.services.evidence_service import alternatives, contains_term, tokens
 
 
 # ── Weight configuration ──────────────────────────────────────
@@ -53,28 +54,24 @@ def compute_recency_weight(end_date: str | None) -> float:
         return 0.8
 
 
+def _mentions(text_tokens: list[str], requirement: str) -> bool:
+    return any(contains_term(text_tokens, term) for term in alternatives(requirement))
+
+
 def compute_keyword_bonus(text: str, jd_data: JDData) -> float:
-    """Count how many JD keywords appear in the text."""
-    text_lower = text.lower()
-    bonus = 0.0
-    for kw in jd_data.keywords:
-        if kw.lower() in text_lower:
-            bonus += KEYWORD_BONUS
+    """Count how many JD keywords appear in the text (whole terms only)."""
+    text_tokens = tokens(text)
+    bonus = sum(KEYWORD_BONUS for kw in jd_data.keywords if _mentions(text_tokens, kw))
     return min(bonus, 0.3)  # cap at 0.3
 
 
 def compute_skill_importance(bullet_text: str, jd_data: JDData) -> float:
-    """Check if the bullet mentions must-have or nice-to-have skills."""
-    text_lower = bullet_text.lower()
-
-    for skill in jd_data.must_have_skills:
-        if skill.lower() in text_lower:
-            return SKILL_IMPORTANCE["must_have"]
-
-    for skill in jd_data.nice_to_have_skills:
-        if skill.lower() in text_lower:
-            return SKILL_IMPORTANCE["nice_to_have"]
-
+    """Check if the bullet mentions must-have or nice-to-have skills (whole terms only)."""
+    text_tokens = tokens(bullet_text)
+    if any(_mentions(text_tokens, s) for s in jd_data.must_have_skills):
+        return SKILL_IMPORTANCE["must_have"]
+    if any(_mentions(text_tokens, s) for s in jd_data.nice_to_have_skills):
+        return SKILL_IMPORTANCE["nice_to_have"]
     return 1.0  # neutral
 
 

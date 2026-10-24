@@ -19,11 +19,14 @@ class Resume(Base):
     jd_id: Mapped[str] = mapped_column(ForeignKey("jd_analysis.id", ondelete="SET NULL"), nullable=True)
     job_title: Mapped[str] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    draft_id: Mapped[str | None] = mapped_column(ForeignKey("drafts.id", ondelete="SET NULL"), nullable=True, index=True)
+    draft_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
 
     profile = relationship("Profile", back_populates="resumes")
+    draft = relationship("Draft", back_populates="resumes")
     sections = relationship("ResumeSection", back_populates="resume", cascade="all, delete-orphan")
     artifacts = relationship("ExportArtifact", back_populates="resume", cascade="all, delete-orphan")
 

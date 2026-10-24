@@ -13,6 +13,7 @@ from app.models.profile import (
     ExternalProfile, PersonalInfo, Profile, Project, ProjectBullet, Skill,
 )
 from app.models.user import User
+from app.schemas import ProfileImport
 
 SectionModel = type[Education | Skill | Experience | Project | Certification | Achievement | ExternalProfile]
 
@@ -165,3 +166,23 @@ def upsert_personal_info(db: Session, user: User, fields: dict) -> PersonalInfo:
     db.commit()
     db.refresh(profile.personal_info)
     return profile.personal_info
+
+
+# ── Import ───────────────────────────────────────────────────
+
+IMPORT_SECTIONS = {
+    "education": Education, "skills": Skill, "experience": Experience, "projects": Project,
+    "certifications": Certification, "achievements": Achievement, "external_profiles": ExternalProfile,
+}
+
+
+def apply_import(db: Session, user: User, data: ProfileImport) -> Profile:
+    """Add reviewed imported sections to the profile; existing entries are kept."""
+    if data.personal_info:
+        upsert_personal_info(db, user, data.personal_info.model_dump())
+    for name, model in IMPORT_SECTIONS.items():
+        for item in getattr(data, name):
+            fields = item.model_dump(exclude={"bullets"})
+            bullets = [b.bullet_text for b in getattr(item, "bullets", [])]
+            create_item(db, user, model, fields, bullets)
+    return get_profile(db, user)

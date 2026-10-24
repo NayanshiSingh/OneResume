@@ -1,0 +1,57 @@
+.notices {
+  border: 1px solid #eab308;
+  background: rgba(234, 179, 8, 0.08);
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+.modeTag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  background: #eab308;
+  color: #000;
+  margin-bottom: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.list li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.supported {
+  color: #16a34a;
+}
+
+.confirm {
+  color: #ca8a04;
+}
+
+.missing {
+  color: #dc2626;
+}

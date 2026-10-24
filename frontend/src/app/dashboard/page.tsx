@@ -10,7 +10,7 @@ import {
     ArrowRight,
     Activity,
 } from "lucide-react";
-import { profileApi, type Profile } from "@/lib/api";
+import { profileApi, systemApi, type AIStatus, type Profile } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import styles from "./page.module.css";
 
@@ -18,8 +18,10 @@ function DashboardContent() {
     const { user } = useSession();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [ai, setAi] = useState<AIStatus | null>(null);
 
     useEffect(() => {
+        systemApi.aiStatus().then(setAi).catch(() => setAi(null));
         profileApi.get().then(setProfile).catch(() => setProfile(null)).finally(() => setLoading(false));
     }, []);
 
@@ -62,13 +64,11 @@ function DashboardContent() {
 
                 <div className={styles.statCard}>
                     <div className={styles.statTop}>
-                        <span className="mono-label">SYSTEM_STATUS</span>
+                        <span className="mono-label">SEMANTIC_MATCHING</span>
                         <Activity size={16} opacity={0.3} />
                     </div>
-                    <span className={styles.statValue} style={{ color: "#22c55e" }}>
-                        ONLINE
-                    </span>
-                    <span className={styles.statSub}>All services operational</span>
+                    <span className={styles.statValue}>{ai ? (ai.embeddings ? "ON" : "BASIC") : "—"}</span>
+                    <span className={styles.statSub}>{ai?.embeddings ? "Pinecone embeddings configured" : "Exact-word matching only"}</span>
                 </div>
 
                 <div className={styles.statCard}>
@@ -76,8 +76,8 @@ function DashboardContent() {
                         <span className="mono-label">AI_ENGINE</span>
                         <Sparkles size={16} opacity={0.3} />
                     </div>
-                    <span className={styles.statValue}>GEMINI</span>
-                    <span className={styles.statSub}>gemini-3-flash-preview active</span>
+                    <span className={styles.statValue}>{ai ? (ai.llm ? "GEMINI" : "BASIC") : "—"}</span>
+                    <span className={styles.statSub}>{ai?.llm ? "AI analysis and import configured" : "Rule-based analysis and import"}</span>
                 </div>
 
                 <div className={styles.statCard}>
@@ -113,22 +113,22 @@ function DashboardContent() {
                         <FileSearch size={20} />
                     </div>
                     <div>
-                        <h3 className={styles.actionTitle}>ANALYZE_JD</h3>
+                        <h3 className={styles.actionTitle}>JOB_DESCRIPTION</h3>
                         <p className={styles.actionSub}>
-                            Parse a job description with AI analysis.
+                            Paste a posting, check the requirements, and start a draft.
                         </p>
                     </div>
                     <ArrowRight size={16} opacity={0.3} />
                 </Link>
 
-                <Link href="/dashboard/generate" className={styles.actionCard}>
+                <Link href="/dashboard/drafts" className={styles.actionCard}>
                     <div className={styles.actionIcon}>
                         <Sparkles size={20} />
                     </div>
                     <div>
-                        <h3 className={styles.actionTitle}>GENERATE_RESUME</h3>
+                        <h3 className={styles.actionTitle}>DRAFTS</h3>
                         <p className={styles.actionSub}>
-                            Create an AI-optimized, role-specific resume.
+                            Review, edit, and approve tailored drafts before exporting.
                         </p>
                     </div>
                     <ArrowRight size={16} opacity={0.3} />

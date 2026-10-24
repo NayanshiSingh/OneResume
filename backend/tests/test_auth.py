@@ -71,9 +71,9 @@ class TestLogin:
         assert db.query(UserSession).count() == 0
 
     def test_protected_routes_require_sign_in(self, anon_client):
-        for path in ["/api/profile", "/api/resumes", "/api/jd"]:
+        for path in ["/api/profile", "/api/resumes", "/api/jd", "/api/drafts", "/api/jobs/x"]:
             assert anon_client.get(path).status_code == 401
-        assert anon_client.post("/api/resumes/generate", json={"jd_text": "x" * 30}).status_code == 401
+        assert anon_client.post("/api/drafts", json={"jd_id": "x", "idempotency_key": "k"}).status_code == 401
 
 
 class TestPasswordReset:
@@ -124,9 +124,9 @@ class TestOriginCheck:
 
 class TestAccountDeletion:
     def test_delete_account_removes_data_and_files(self, client, db, strong_fit_profile_data, sample_jd_text, tmp_path):
-        from tests.conftest import fill_profile
+        from tests.conftest import export_resume, fill_profile
         fill_profile(client, strong_fit_profile_data)
-        assert client.post("/api/resumes/generate", json={"jd_text": sample_jd_text}).status_code == 201
+        export_resume(client, db, sample_jd_text)
         user_id = client.get("/api/auth/me").json()["id"]
         user_dir = tmp_path / "storage" / "users" / user_id
         assert user_dir.exists()

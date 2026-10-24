@@ -24,6 +24,7 @@ dependencies = [
     "pwdlib[argon2]>=0.2.1",
     "email-validator>=2.2",
     "weasyprint>=63",
+    "pypdf>=6.20.1,<6.21",
 ]
 
 [project.optional-dependencies]

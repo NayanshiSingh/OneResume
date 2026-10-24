@@ -2,6 +2,7 @@
 
 from app.config import settings
 from app.services import embedding_service
+from tests.conftest import export_resume, make_draft
 
 REAL_EMBED_BATCH = embedding_service._embed_batch
 
@@ -24,12 +25,11 @@ class TestEmptyJD:
 
 
 class TestEmptyProfile:
-    def test_generate_with_empty_profile(self, client, sample_jd_text):
+    def test_generate_with_empty_profile(self, client, db, sample_jd_text):
         """Resume generation with empty profile should still work (graceful)."""
-        resp = client.post("/api/resumes/generate", json={"jd_text": sample_jd_text})
+        resume = export_resume(client, db, sample_jd_text)
         # Should still succeed (never fail due to missing content)
-        assert resp.status_code == 201
-        assert "resume_id" in resp.json()
+        assert resume["formats"]
 
 
 class TestDuplicateSkills:
@@ -57,9 +57,9 @@ class TestHealthCheck:
 
 
 class TestMissingProvider:
-    def test_generation_without_embedding_key_explains_itself(self, client, monkeypatch, sample_jd_text):
+    def test_draft_without_embedding_key_uses_labelled_basic_matching(self, client, db, monkeypatch, sample_jd_text):
         monkeypatch.setattr(embedding_service, "_embed_batch", REAL_EMBED_BATCH)
         monkeypatch.setattr(settings, "PINECONE_API_KEY", "")
-        resp = client.post("/api/resumes/generate", json={"jd_text": sample_jd_text})
-        assert resp.status_code == 503
-        assert "PINECONE_API_KEY" in resp.json()["detail"]
+        draft = make_draft(client, db, sample_jd_text)
+        assert draft["matching_mode"] == "basic"
+        assert any("Semantic matching is off" in w for w in draft["warnings"])

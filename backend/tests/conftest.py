@@ -13,7 +13,7 @@ from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 from app.models import *  # noqa: F401, F403 — ensure all models are registered
-from app.services import embedding_service
+from app.services import embedding_service, job_service
 
 TEST_PASSWORD = "correct-horse-battery"
 
@@ -255,3 +255,26 @@ def fill_profile(client: TestClient, profile_data: dict) -> dict:
     for item in profile_data.get("external_profiles", []):
         assert client.post("/api/profile/external-profiles", json=item).status_code == 201
     return client.get("/api/profile").json()
+
+
+def make_draft(client: TestClient, db, jd_text: str, page_target: int = 1) -> dict:
+    """Analyse a JD, queue a draft, run the worker once, and return the draft."""
+    jd = client.post("/api/jd/analyze", json={"raw_text": jd_text})
+    assert jd.status_code == 201, jd.text
+    job = client.post("/api/drafts", json={
+        "jd_id": jd.json()["id"], "page_target": page_target, "idempotency_key": f"key-{jd.json()['id']}",
+    })
+    assert job.status_code == 202, job.text
+    assert job_service.process_next(db)
+    job = client.get(f"/api/jobs/{job.json()['id']}").json()
+    assert job["status"] == "succeeded", job
+    return client.get(f"/api/drafts/{job['result_id']}").json()
+
+
+def export_resume(client: TestClient, db, jd_text: str) -> dict:
+    """Full flow: draft, approve the current revision, export. Returns the resume."""
+    draft = make_draft(client, db, jd_text)
+    assert client.post(f"/api/drafts/{draft['id']}/approve", json={"revision": draft["revision"]}).status_code == 200
+    resp = client.post(f"/api/drafts/{draft['id']}/export")
+    assert resp.status_code == 201, resp.text
+    return resp.json()

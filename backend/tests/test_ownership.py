@@ -2,17 +2,18 @@
 
 import pytest
 
-from tests.conftest import fill_profile, signup
+from tests.conftest import export_resume, fill_profile, make_draft, signup
 
 
 @pytest.fixture
-def alice(make_client, strong_fit_profile_data, sample_jd_text):
+def alice(make_client, db, strong_fit_profile_data, sample_jd_text):
     c = make_client()
     signup(c, "alice@example.com")
     profile = fill_profile(c, strong_fit_profile_data)
     jd = c.post("/api/jd/analyze", json={"raw_text": sample_jd_text}).json()
-    resume = c.post("/api/resumes/generate", json={"jd_text": sample_jd_text}).json()
-    return {"client": c, "profile": profile, "jd": jd, "resume": resume}
+    resume = export_resume(c, db, sample_jd_text)
+    draft = make_draft(c, db, sample_jd_text)
+    return {"client": c, "profile": profile, "jd": jd, "resume": resume, "draft": draft}
 
 
 @pytest.fixture
@@ -71,9 +72,24 @@ def test_cannot_read_another_users_job_description(alice, bob):
 
 
 def test_cannot_read_download_or_delete_another_users_resume(alice, bob):
-    resume_id = alice["resume"]["resume_id"]
+    resume_id = alice["resume"]["id"]
     assert bob.get(f"/api/resumes/{resume_id}").status_code == 404
     assert bob.get(f"/api/resumes/{resume_id}/download?format=docx").status_code == 404
     assert bob.delete(f"/api/resumes/{resume_id}").status_code == 404
     assert bob.get("/api/resumes").json() == []
     assert alice["client"].get(f"/api/resumes/{resume_id}/download?format=docx").status_code == 200
+
+
+def test_cannot_touch_another_users_job_description_or_draft(alice, bob):
+    jd_id, draft = alice["jd"]["id"], alice["draft"]
+    assert bob.put(f"/api/jd/{jd_id}", json={"role_title": "Hijacked"}).status_code == 404
+    assert bob.get(f"/api/jd/{jd_id}/coverage").status_code == 404
+    assert bob.post("/api/drafts", json={"jd_id": jd_id, "idempotency_key": "k"}).status_code == 404
+    assert bob.get(f"/api/drafts/{draft['id']}").status_code == 404
+    edit = {"revision": draft["revision"], "ops": [{"op": "set_included", "section": "skills",
+                                                    "item_id": draft["content"]["skills"][0]["id"], "value": False}]}
+    assert bob.patch(f"/api/drafts/{draft['id']}", json=edit).status_code == 404
+    assert bob.post(f"/api/drafts/{draft['id']}/approve", json={"revision": draft["revision"]}).status_code == 404
+    assert bob.post(f"/api/drafts/{draft['id']}/export").status_code == 404
+    assert bob.delete(f"/api/drafts/{draft['id']}").status_code == 404
+    assert bob.get("/api/drafts").json() == []
