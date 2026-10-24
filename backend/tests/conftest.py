@@ -13,7 +13,7 @@ from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 from app.models import *  # noqa: F401, F403 — ensure all models are registered
-from app.services import embedding_service, job_service
+from app.services import embedding_service, job_service, llm_client
 
 TEST_PASSWORD = "correct-horse-battery"
 
@@ -36,12 +36,18 @@ def fake_embed_batch(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
+def _no_live_llm(prompt, schema):
+    raise AssertionError("Tests must not call Gemini; patch generate_json in the module under test")
+
+
 @pytest.fixture(autouse=True)
 def offline_environment(monkeypatch, tmp_path):
     """No live AI calls, and generated files go to a temporary directory."""
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "PINECONE_API_KEY", "")
     monkeypatch.setattr(settings, "STORAGE_DIR", str(tmp_path / "storage"))
     monkeypatch.setattr(embedding_service, "_embed_batch", fake_embed_batch)
+    monkeypatch.setattr(llm_client, "_generate", _no_live_llm)
 
 
 @pytest.fixture(autouse=True)
