@@ -32,6 +32,7 @@ from app.models.profile import (
     Achievement, Certification, Education, Experience, ExternalProfile, Project, Skill,
 )
 from app.repositories import JDAnalysisRepo
+from app.clock import utcnow
 from app.services import auth_service, draft_service, llm_client, profile_service
 from app.services.jd_analyzer import analyze_jd, jd_to_dict
 from app.domain.resume_draft import JDData
@@ -96,7 +97,7 @@ def evaluate_task(db, task: dict, jd: dict, user, ids: dict) -> dict:
     record = JDAnalysisRepo.create(db, user_id=user.id, raw_text=jd["text"],
                                    structured_data=json.dumps(jd_to_dict(reviewed)),
                                    analysis_mode="reviewed", warnings="[]")
-    record.reviewed_at = auth_service.utcnow()
+    record.reviewed_at = utcnow()
     db.commit()
 
     draft: Draft = draft_service.build_draft(db, user, record.id, 1)

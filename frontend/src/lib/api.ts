@@ -172,6 +172,17 @@ export interface CoverageItem {
     evidence: { id: string; kind: string; text: string }[];
 }
 
+export interface ProfileCheck {
+    kind: "contact" | "empty" | "graduation_month" | "vague_bullet" | "listed_only_skills";
+    severity: "warning" | "info";
+    message: string;
+    section?: string | null;
+    item_id?: string | null;
+    bullet_id?: string | null;
+    questions: string[];
+    skills: string[];
+}
+
 export interface AIStatus {
     llm: boolean;
     embeddings: boolean;
@@ -339,6 +350,7 @@ export const authApi = {
 
 export const profileApi = {
     get: () => request<Profile>("/api/profile"),
+    checks: () => request<ProfileCheck[]>("/api/profile/checks"),
 
     upsertPersonalInfo: (data: Omit<PersonalInfo, "id">) =>
         send<PersonalInfo>("PUT", "/api/profile/personal-info", data),

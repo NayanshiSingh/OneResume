@@ -17,7 +17,7 @@ from app.models.profile import Profile
 from app.models.resume import Resume
 from app.models.user import User
 from app.repositories import JDAnalysisRepo, ResumeRepo
-from app.services import evidence_service, job_service, profile_service, rewrite_service
+from app.services import evidence_service, job_service, profile_service, rewrite_service, usage_service
 from app.services.ai_status import AI, BASIC, embeddings_available
 from app.services.embedding_service import embedding_from_json, embedding_to_json, generate_embedding, generate_embeddings
 from app.services import output_check
@@ -40,6 +40,10 @@ MATCHING_FAILED = "Semantic matching failed, so only exact words were compared. 
 
 def request_draft(db: Session, user: User, jd_id: str, page_target: int, idempotency_key: str) -> GenerationJob:
     JDAnalysisRepo.get_owned(db, user.id, jd_id)  # fail now rather than inside the job
+    existing = job_service.find(db, user, idempotency_key)
+    if existing:
+        return existing
+    usage_service.consume(db, user, usage_service.DRAFT)
     payload = {"jd_id": jd_id, "page_target": page_target}
     return job_service.enqueue(db, user, DRAFT_JOB, payload, idempotency_key)
 

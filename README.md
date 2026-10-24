@@ -388,7 +388,7 @@ pytest tests/test_jd_analyzer.py
 pytest tests/test_integration.py
 ```
 
-**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) `--offline` to check the harness without any API calls, and `--no-gemini` for real Pinecone matching with Gemini off (selection and labels only, free). Do not use the free tier with real resumes: Google may use free-tier data to improve its products.
+**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) `--offline` to check the harness without any API calls, and `--no-gemini` for real Pinecone matching with Gemini off (selection and labels only, free). Do not use the free tier with real resumes: Google may use free-tier data to improve its products. The **Data & AI** page in the dashboard lists exactly what each provider receives.
 
 **Test Suite Coverage:**
 
@@ -401,6 +401,7 @@ pytest tests/test_integration.py
 | `test_migrations.py` | Alembic migrations match the models |
 | `test_evidence_service.py` | Token-aware evidence labels |
 | `test_import.py` | Resume import parsing, preview, and apply |
+| `test_profile_checks.py` | Profile suggestions, and that they never block drafts |
 | `test_jobs.py` | Background jobs: idempotency, failure, retry, stale reclaim |
 | `test_drafts.py` | Draft selection, edits, approval by revision, export |
 | `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
@@ -408,6 +409,7 @@ pytest tests/test_integration.py
 | `test_scoring_engine.py` | Composite scoring formula |
 | `test_rewrites.py` | Claim checks, the two-step suggestion check, accepting suggestions, rate-limit retries |
 | `test_eval_scoring.py` | Evaluation scoring functions |
+| `test_limits.py` | Daily limits, sign-in throttling, reset-email cap |
 | `test_versions.py` | Read-back checks, page counts, damaged files, compare, restore, sent dates, length check |
 | `test_resume_assembler.py` | Resume data assembly |
 | `test_edge_cases.py` | Edge cases & error handling |
@@ -430,6 +432,7 @@ pytest tests/test_integration.py
 | `POST` / `PATCH` / `DELETE` / `PUT` | `/api/profile/{experience\|projects}/…/bullets` | Add, edit, remove, and reorder bullets |
 | `POST` | `/api/jd/analyze` | Submit and analyze a job description |
 | `POST` | `/api/profile/import` → `/api/profile/import/apply` | Preview an uploaded PDF/DOCX, then save the reviewed result |
+| `GET` | `/api/profile/checks` | Optional suggestions: vague or short bullets (with questions to answer), missing contact details, missing graduation month, skills listed without evidence |
 | `PUT` | `/api/jd/{id}` | Save reviewed requirements |
 | `GET` | `/api/jd/{id}/coverage` | Evidence label for each requirement |
 | `POST` | `/api/drafts` | Queue a draft (returns a job; poll `GET /api/jobs/{id}`) |
@@ -472,6 +475,9 @@ All configuration is managed via environment variables (loaded from `.env`):
 | `ALLOWED_ORIGINS` | `["http://localhost:3000"]` | Origins allowed to make state-changing requests |
 | `APP_BASE_URL` | `http://localhost:3000` | Used to build password reset links |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | Reset link lifetime |
+| `DAILY_JD_ANALYSES` / `DAILY_RESUME_IMPORTS` / `DAILY_DRAFTS` | `30` / `10` / `30` | Per-user limits over a rolling 24 hours; over the limit returns 429 with `Retry-After` |
+| `LOGIN_FAILURE_LIMIT` / `LOGIN_FAILURE_WINDOW_MINUTES` | `10` / `15` | Failed sign-ins per email before sign-in is paused (applies whether or not the account exists) |
+| `RESET_REQUESTS_PER_HOUR` | `3` | Reset emails per address per hour; extra requests get the same response but send nothing |
 
 ---
 

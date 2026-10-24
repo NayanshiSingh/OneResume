@@ -15,12 +15,16 @@ from pydantic import BaseModel, ValidationError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from sqlalchemy.orm import Session
+
 from app.errors import InvalidRequestError
+from app.models.user import User
 from app.schemas import (
     AchievementCreate, CertificationCreate, EducationCreate, ExperienceCreate,
     ExternalProfileCreate, PersonalInfoCreate, ProfileImport, ProjectCreate, SkillCreate,
 )
 from app.services.ai_status import AI, BASIC, llm_available
+from app.services import usage_service
 from app.services.llm_client import generate_json
 
 logger = logging.getLogger(__name__)
@@ -344,9 +348,8 @@ def parse_with_rules(text: str) -> dict:
 # ── Entry point ──────────────────────────────────────────────
 
 
-def import_resume(filename: str, data: bytes) -> tuple[str, list[str], ProfileImport]:
-    """Return (mode, warnings, preview) for an uploaded resume."""
-    text = extract_text(filename, data)
+def parse_text(text: str) -> tuple[str, list[str], ProfileImport]:
+    """Return (mode, warnings, preview) for extracted resume text."""
     warnings: list[str] = []
     raw, mode = None, BASIC
     if llm_available():
@@ -365,3 +368,10 @@ def import_resume(filename: str, data: bytes) -> tuple[str, list[str], ProfileIm
     if dropped:
         warnings.append(f"{dropped} item(s) could not be read and were left out.")
     return mode, warnings, preview
+
+
+def import_for_user(db: Session, user: User, filename: str, data: bytes) -> tuple[str, list[str], ProfileImport]:
+    """Read the file first so unreadable uploads do not count against the user's daily limit."""
+    text = extract_text(filename, data)
+    usage_service.consume(db, user, usage_service.RESUME_IMPORT)
+    return parse_text(text)

@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = "http://localhost:3000"
     PASSWORD_RESET_TTL_MINUTES: int = 30
 
+    # ── Limits (rolling 24 hours per user unless noted) ───────
+    DAILY_JD_ANALYSES: int = 30
+    DAILY_RESUME_IMPORTS: int = 10
+    DAILY_DRAFTS: int = 30
+    LOGIN_FAILURE_LIMIT: int = 10  # per email, within LOGIN_FAILURE_WINDOW_MINUTES
+    LOGIN_FAILURE_WINDOW_MINUTES: int = 15
+    RESET_REQUESTS_PER_HOUR: int = 3  # per email; extra requests send nothing
+
     # ── Private file storage ──────────────────────────────────
     STORAGE_DIR: str = str(BASE_DIR / "storage")
 
