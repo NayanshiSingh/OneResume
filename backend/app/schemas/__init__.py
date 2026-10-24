@@ -339,6 +339,17 @@ class CoverageItem(BaseModel):
     evidence: list[EvidenceOut]
 
 
+class ProfileCheck(BaseModel):
+    kind: str
+    severity: str  # warning | info
+    message: str
+    section: Optional[str] = None
+    item_id: Optional[str] = None
+    bullet_id: Optional[str] = None
+    questions: list[str] = []
+    skills: list[str] = []
+
+
 class AIStatus(BaseModel):
     llm: bool
     embeddings: bool
