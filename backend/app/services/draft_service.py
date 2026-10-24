@@ -96,7 +96,7 @@ def build_draft(db: Session, user: User, jd_id: str, page_target: int) -> Draft:
     jd = structured(record)
     mode, jd_embedding, warnings = _embeddings(db, profile, record, jd)
     coverage = evidence_service.coverage(profile, jd)
-    content = select_content(profile, jd, jd_embedding, page_target)
+    content = select_content(profile, jd, jd_embedding, coverage, page_target)
     warnings += rewrite_service.add_suggestions(content, jd, [s.skill_name for s in profile.skills])
     draft = Draft(
         profile_id=profile.id, jd_id=record.id, job_title=jd.role_title or "Untitled role",

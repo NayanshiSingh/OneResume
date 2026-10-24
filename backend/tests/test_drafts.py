@@ -241,6 +241,18 @@ class TestPageBudget:
         barista = next(e for e in content["experience"] if e["title"] == "Barista")
         assert barista["included"] and barista["bullets"][0]["included"]
 
+    def test_only_proof_of_a_requirement_survives_a_full_page(self, client, db, sample_jd_text):
+        for i in range(3):
+            client.post("/api/profile/experience", json={"company": f"Co{i}", "role": "Engineer", "bullets": [
+                {"bullet_text": f"Python FastAPI PostgreSQL Docker AWS work {i}-{j}"} for j in range(7)]})
+        client.post("/api/profile/projects", json={"project_title": "Cluster lab", "bullets": [
+            {"bullet_text": "Ran a home lab on Kubernetes"}]})
+        draft = make_draft(client, db, sample_jd_text)
+        project = draft["content"]["projects"][0]
+        assert project["included"] and project["bullets"][0]["included"]
+        kubernetes = next(c for c in draft["coverage"] if c["requirement"] == "Kubernetes")
+        assert kubernetes["label"] == "supported" and kubernetes["in_draft"]
+
     def test_project_without_budget_is_left_out(self, client, db, sample_jd_text):
         for i in range(3):
             client.post("/api/profile/experience", json={"company": f"Co{i}", "role": "Engineer", "bullets": [
