@@ -95,10 +95,10 @@ class ResumeRepo:
 class ArtifactRepo:
     @staticmethod
     def create(db: Session, resume_id: str, format: str, storage_key: str,
-               checksum: str, size_bytes: int) -> ExportArtifact:
+               checksum: str, size_bytes: int, page_count: int | None = None) -> ExportArtifact:
         artifact = ExportArtifact(
             resume_id=resume_id, format=format, storage_key=storage_key,
-            checksum=checksum, size_bytes=size_bytes,
+            checksum=checksum, size_bytes=size_bytes, page_count=page_count,
         )
         db.add(artifact)
         db.commit()
