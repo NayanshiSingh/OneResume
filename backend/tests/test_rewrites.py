@@ -25,6 +25,17 @@ from tests.conftest import make_draft
     ("Built an ML model", "Built an expert-level ML model", "", "seniority"),
     ("Built APIs", "Built APIs " + "with careful attention to detail " * 6, "", "longer"),
     ("worked on the website", "Maintained the company website", "", None),
+    # Same verb, different tense (seen with Groq in the evaluation run).
+    ("Lead weekly lab sections of 30 students", "Led weekly lab sections for 30 students", "", None),
+    ("Mentor two junior engineers", "Mentored two junior engineers", "", None),
+    # Base words that are not the verb must not excuse a stronger claim.
+    ("Built my own CLI", "Owned the CLI", "", "responsibility"),
+    ("Fixed the hard drive backup", "Drove the backup project", "", "responsibility"),
+    ("Found and fixed bugs", "Founded the bug-fix effort", "", "responsibility"),
+    ("Helped mentor students", "Led mentoring for students", "", "responsibility"),
+    # "30+" and "over 30" are the same claim; adding a "+" is not.
+    ("Trained 30+ new associates", "Trained over 30 new associates", "", None),
+    ("Trained 30 new associates", "Trained 30+ new associates", "", "number"),
 ])
 def test_claim_checks(original, rewrite, context, blocked_by):
     reasons = check_rewrite(original, rewrite, context, ["Kubernetes", "Redis", "Python"])
