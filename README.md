@@ -39,7 +39,7 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 | ✍️ **Your Wording, Your Approval** | Drafts use your own bullets. Checked suggestions are offered beside them with changes highlighted; you accept, edit, hide, or pin, then approve a specific revision before export |
 | 📊 **ATS-Friendly Output** | Single-column template with standard headings and selectable text |
 | 📥 **Multi-Format Export** | Download your resume as **PDF** (HTML template rendered with WeasyPrint) or **DOCX** — professionally formatted and ready to submit |
-| 🔄 **Resume Versioning** | Each exported revision is stored as a new version with its files |
+| 🔄 **Resume Versioning** | Each export is a version you can compare, restore as a new draft, and mark as sent; files are read back and checked before they are offered |
 | 🛡️ **Evidence Labels** | Every requirement is *supported*, *needs confirmation* (skills list only), or *not found* — gaps are shown, never filled in |
 
 ---
@@ -293,7 +293,9 @@ graph TD
 | Selection | `relevance_selector.py`, `scoring_engine.py` | Every entry is kept so it can be restored; scores decide what starts included. Entries keep profile order; wording is the user's own. Embeddings are used when Pinecone is configured, otherwise labelled exact-word matching |
 | Suggestions | `rewrite_service.py`, `claim_checks.py` | Each included bullet may get a suggestion; rule checks and a second Gemini call decide whether it is offered (safe) or blocked, with reasons |
 | Review and approval | `draft_service.py` | Accepting a suggestion or editing creates a new revision and clears approval; accepted and edited bullets are listed at approval |
-| Export | `resume_assembler.py`, `pdf_renderer.py`, `export_service.py` | Only the approved revision is exported, once per revision, as a new resume version |
+| Length check | `GET /api/drafts/{id}/layout` | Renders the current revision to count pages; when it overflows, suggests bullets to hide, starting with ones that support no requirement |
+| Export | `resume_assembler.py`, `pdf_renderer.py`, `export_service.py`, `output_check.py` | Only the approved revision is exported, once per revision, as a new resume version. Each file is read back and must contain every heading, entry, and bullet in order; a format that fails is not offered. Page overflow is recorded as a warning |
+| History | `version_service.py` | Each version keeps the exact content it was exported from: compare two versions, restore one as a new draft, or record when it was sent. Downloads are checked against the stored checksum |
 
 Without API keys every step still works in a clearly labelled basic mode.
 
@@ -406,6 +408,7 @@ pytest tests/test_integration.py
 | `test_scoring_engine.py` | Composite scoring formula |
 | `test_rewrites.py` | Claim checks, the two-step suggestion check, accepting suggestions, rate-limit retries |
 | `test_eval_scoring.py` | Evaluation scoring functions |
+| `test_versions.py` | Read-back checks, page counts, damaged files, compare, restore, sent dates, length check |
 | `test_resume_assembler.py` | Resume data assembly |
 | `test_edge_cases.py` | Edge cases & error handling |
 
@@ -432,6 +435,10 @@ pytest tests/test_integration.py
 | `POST` | `/api/drafts` | Queue a draft (returns a job; poll `GET /api/jobs/{id}`) |
 | `GET` / `PATCH` / `DELETE` | `/api/drafts/{id}` | Read, edit (include, pin, edit or revert bullets), or delete a draft |
 | `POST` | `/api/drafts/{id}/approve` / `export` | Approve the current revision, then export it |
+| `GET` | `/api/drafts/{id}/layout` | Page count and suggested cuts |
+| `PATCH` | `/api/resumes/{id}` | Record or clear the date a version was sent |
+| `GET` | `/api/resumes/{id}/compare/{other}` | Changes between two versions |
+| `POST` | `/api/resumes/{id}/restore` | Start a new draft from a version |
 | `GET` | `/api/system/ai-status` | Which AI providers are configured |
 | `GET` | `/api/resumes` / `/api/resumes/{id}` | List / fetch resumes with available formats |
 | `GET` | `/api/resumes/{id}/download?format=pdf\|docx` | Download a generated file |
