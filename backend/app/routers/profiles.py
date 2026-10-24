@@ -40,10 +40,10 @@ def upsert_personal_info(
 
 
 @router.post("/import", response_model=ImportPreview)
-def import_resume(file: UploadFile = File(...), user: User = Depends(get_current_user)):
+def import_resume(file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Read an uploaded PDF or DOCX into a preview. Nothing is saved until /import/apply."""
     data = file.file.read(import_service.MAX_UPLOAD_BYTES + 1)
-    mode, warnings, preview = import_service.import_resume(file.filename or "", data)
+    mode, warnings, preview = import_service.import_for_user(db, user, file.filename or "", data)
     return ImportPreview(mode=mode, warnings=warnings, profile=preview)
 
 

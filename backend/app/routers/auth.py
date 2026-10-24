@@ -34,7 +34,7 @@ def register(payload: Credentials, response: Response, db: Session = Depends(get
 
 @router.post("/login", response_model=UserOut)
 def login(payload: Credentials, response: Response, db: Session = Depends(get_db)):
-    user = auth_service.authenticate(db, payload.email, payload.password)
+    user = auth_service.sign_in(db, payload.email, payload.password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     _set_session_cookie(response, auth_service.create_session(db, user))
