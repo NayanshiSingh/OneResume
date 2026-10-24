@@ -6,6 +6,7 @@ JD = {"requirements": [
     {"id": "R1", "type": "required", "kind": "skill", "any_of": ["Python", "Java"]},
     {"id": "R2", "type": "preferred", "kind": "skill", "any_of": ["Docker"]},
     {"id": "R3", "type": "required", "kind": "experience"},
+    {"id": "R4", "type": "preferred", "kind": "experience", "any_of": ["HIPAA", "healthcare"]},
 ]}
 
 CONTENT = {
@@ -23,10 +24,10 @@ CONTENT = {
 }
 
 
-def test_reviewed_requirements_use_alternatives_and_skip_experience():
+def test_reviewed_requirements_include_anything_with_search_words():
     required, preferred, ids = scoring.reviewed_requirements(JD)
-    assert (required, preferred) == (["Python or Java"], ["Docker"])
-    assert ids == {"Python or Java": "R1", "Docker": "R2"}
+    assert (required, preferred) == (["Python or Java"], ["Docker", "HIPAA or healthcare"])
+    assert ids == {"Python or Java": "R1", "Docker": "R2", "HIPAA or healthcare": "R4"}
 
 
 def test_label_agreement_counts_accepted_alternatives():

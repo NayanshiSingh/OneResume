@@ -11,15 +11,15 @@ _YEARS = re.compile(r"\b\d+\+?\s+years?\b", re.IGNORECASE)
 
 
 def reviewed_requirements(jd: dict) -> tuple[list[str], list[str], dict[str, str]]:
-    """Answer-key skill requirements as the user would type them after review.
+    """Answer-key requirements as the user would type them after review.
 
-    Returns (required, preferred, requirement text → requirement id). Requirements
-    without concrete terms (experience, education) are not matched by evidence
-    terms and are reported separately.
+    Returns (required, preferred, requirement text → requirement id). Skills and
+    experience requirements with search words (any_of) are included; years,
+    degrees, and eligibility have none and are reported separately.
     """
     required, preferred, ids = [], [], {}
     for req in jd["requirements"]:
-        if req["kind"] != "skill" or not req.get("any_of"):
+        if not req.get("any_of"):
             continue
         text = " or ".join(req["any_of"])
         (required if req["type"] == "required" else preferred).append(text)
