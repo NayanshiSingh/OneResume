@@ -34,7 +34,7 @@ function AIStatusBanner() {
         systemApi.aiStatus().then(setStatus).catch(() => setStatus(null));
     }, []);
     if (!status || (status.llm && status.embeddings)) return null;
-    const off = [!status.llm && "AI analysis and import (Gemini)", !status.embeddings && "semantic matching (Pinecone)"].filter(Boolean);
+    const off = [!status.llm && `AI analysis and import (${status.llm_provider})`, !status.embeddings && "semantic matching (Pinecone)"].filter(Boolean);
     return (
         <div className={styles.aiBanner} role="status">
             BASIC MODE: {off.join(" and ")} {off.length > 1 ? "are" : "is"} not configured. Features still work with simpler rules and are labelled.

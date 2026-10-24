@@ -185,6 +185,7 @@ export interface ProfileCheck {
 
 export interface AIStatus {
     llm: boolean;
+    llm_provider: string;
     embeddings: boolean;
 }
 

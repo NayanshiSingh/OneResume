@@ -76,7 +76,7 @@ function DashboardContent() {
                         <span className="mono-label">AI_ENGINE</span>
                         <Sparkles size={16} opacity={0.3} />
                     </div>
-                    <span className={styles.statValue}>{ai ? (ai.llm ? "GEMINI" : "BASIC") : "—"}</span>
+                    <span className={styles.statValue}>{ai ? (ai.llm ? ai.llm_provider.toUpperCase() : "BASIC") : "—"}</span>
                     <span className={styles.statSub}>{ai?.llm ? "AI analysis and import configured" : "Rule-based analysis and import"}</span>
                 </div>
 
