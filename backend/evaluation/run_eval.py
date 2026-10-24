@@ -195,13 +195,15 @@ def install_offline_fakes() -> None:
     rewrite_service.generate_json = fake_json
 
 
-def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: float = 0) -> dict:
+def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: float = 0, no_gemini: bool = False) -> dict:
     if rpm:
         llm_client.min_interval_seconds = 60 / rpm
+    if no_gemini:
+        settings.GEMINI_API_KEY = ""
     if offline:
         install_offline_fakes()
-    elif not (settings.GEMINI_API_KEY and settings.PINECONE_API_KEY):
-        raise SystemExit("Live runs need GEMINI_API_KEY and PINECONE_API_KEY in backend/.env (or use --offline)")
+    elif not settings.PINECONE_API_KEY or not (settings.GEMINI_API_KEY or no_gemini):
+        raise SystemExit("Live runs need GEMINI_API_KEY and PINECONE_API_KEY in backend/.env (or use --offline or --no-gemini)")
 
     settings.STORAGE_DIR = tempfile.mkdtemp(prefix="oneresume-eval-")
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -227,10 +229,11 @@ def run(max_cost: float, offline: bool, only: list[str] | None = None, rpm: floa
         stopped = str(exc)
         logger.warning(stopped)
 
-    report = {"run_at": datetime.now().isoformat(timespec="seconds"), "offline": offline, "stopped_early": stopped,
+    report = {"run_at": datetime.now().isoformat(timespec="seconds"), "offline": offline, "gemini": not (offline or no_gemini),
+              "stopped_early": stopped,
               "summary": summarise(extraction, results), "extraction": extraction, "tasks": results}
     RESULTS_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S") + ("-offline" if offline else "")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S") + ("-offline" if offline else "-no-gemini" if no_gemini else "")
     (RESULTS_DIR / f"{stamp}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     (RESULTS_DIR / f"{stamp}-calibration.md").write_text(calibration_markdown(results, jds))
     report["files"] = [str(RESULTS_DIR / f"{stamp}.json"), str(RESULTS_DIR / f"{stamp}-calibration.md")]
@@ -242,12 +245,14 @@ def main() -> None:
     parser.add_argument("--max-cost", type=float, default=1.50, help="stop when Gemini spend passes this (USD)")
     parser.add_argument("--offline", action="store_true", help="use fakes instead of Gemini and Pinecone")
     parser.add_argument("--only", nargs="*", help="task IDs to run, e.g. T01 T08")
+    parser.add_argument("--no-gemini", action="store_true",
+                        help="real Pinecone matching, Gemini off (basic JD extraction, no suggestions); costs nothing")
     parser.add_argument("--rpm", type=float, default=0, help="max Gemini requests per minute (free tier: 5)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     for noisy in ("httpx", "app.services.llm_client", "google_genai"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
-    report = run(args.max_cost, args.offline, args.only, args.rpm)
+    report = run(args.max_cost, args.offline, args.only, args.rpm, args.no_gemini)
     print(json.dumps(report["summary"], indent=2))
     print("\n".join(report["files"]))
 
