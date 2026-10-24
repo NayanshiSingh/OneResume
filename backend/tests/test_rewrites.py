@@ -98,6 +98,13 @@ def test_safe_suggestion_passes_both_checks(monkeypatch, gemini_on):
     assert result["b0"] == {"text": "Developed REST APIs in Python", "status": "safe", "reasons": []}
 
 
+def test_checker_sees_the_entry_context(monkeypatch, gemini_on):
+    # A project's tech stack is part of the source; the checker must see it like the rules do.
+    fake = FakeGemini({"b0": "Developed REST APIs in Python"})
+    suggest(monkeypatch, fake, content_with("built rest apis in python"))
+    assert '"context": "Engineer Acme"' in fake.check_pairs
+
+
 def test_rule_blocked_suggestion_is_not_sent_to_checker(monkeypatch, gemini_on):
     fake = FakeGemini({"b0": "Deployed services to Kubernetes", "b1": "Wrote clear docs"})
     _, result = suggest(monkeypatch, fake, content_with("Deployed services", "wrote docs"))
