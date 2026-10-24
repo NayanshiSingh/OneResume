@@ -409,6 +409,7 @@ pytest tests/test_integration.py
 | `test_scoring_engine.py` | Composite scoring formula |
 | `test_rewrites.py` | Claim checks, the two-step suggestion check, accepting suggestions, rate-limit retries |
 | `test_eval_scoring.py` | Evaluation scoring functions |
+| `test_limits.py` | Daily limits, sign-in throttling, reset-email cap |
 | `test_versions.py` | Read-back checks, page counts, damaged files, compare, restore, sent dates, length check |
 | `test_resume_assembler.py` | Resume data assembly |
 | `test_edge_cases.py` | Edge cases & error handling |
@@ -474,6 +475,9 @@ All configuration is managed via environment variables (loaded from `.env`):
 | `ALLOWED_ORIGINS` | `["http://localhost:3000"]` | Origins allowed to make state-changing requests |
 | `APP_BASE_URL` | `http://localhost:3000` | Used to build password reset links |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | Reset link lifetime |
+| `DAILY_JD_ANALYSES` / `DAILY_RESUME_IMPORTS` / `DAILY_DRAFTS` | `30` / `10` / `30` | Per-user limits over a rolling 24 hours; over the limit returns 429 with `Retry-After` |
+| `LOGIN_FAILURE_LIMIT` / `LOGIN_FAILURE_WINDOW_MINUTES` | `10` / `15` | Failed sign-ins per email before sign-in is paused (applies whether or not the account exists) |
+| `RESET_REQUESTS_PER_HOUR` | `3` | Reset emails per address per hour; extra requests get the same response but send nothing |
 
 ---
 

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.errors import InvalidRequestError, NotFoundError
 from app.models.draft import GenerationJob
 from app.models.user import User
-from app.services.auth_service import utcnow
+from app.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,12 @@ def register(kind: str):
     return decorator
 
 
+def find(db: Session, user: User, idempotency_key: str) -> GenerationJob | None:
+    return db.query(GenerationJob).filter_by(user_id=user.id, idempotency_key=idempotency_key).first()
+
+
 def enqueue(db: Session, user: User, kind: str, payload: dict, idempotency_key: str) -> GenerationJob:
-    existing = db.query(GenerationJob).filter_by(user_id=user.id, idempotency_key=idempotency_key).first()
+    existing = find(db, user, idempotency_key)
     if existing:
         return existing
     job = GenerationJob(user_id=user.id, kind=kind, payload=json.dumps(payload), idempotency_key=idempotency_key)

@@ -8,8 +8,8 @@ from app.domain.resume_draft import JDData
 from app.models.jd import JDAnalysis
 from app.models.user import User
 from app.repositories import JDAnalysisRepo
-from app.services import evidence_service, profile_service
-from app.services.auth_service import utcnow
+from app.services import evidence_service, profile_service, usage_service
+from app.clock import utcnow
 from app.services.jd_analyzer import analyze_jd, jd_to_dict
 
 
@@ -18,6 +18,7 @@ def structured(record: JDAnalysis) -> JDData:
 
 
 def analyze_and_store(db: Session, user: User, raw_text: str) -> JDAnalysis:
+    usage_service.consume(db, user, usage_service.JD_ANALYSIS)
     result = analyze_jd(raw_text)
     return JDAnalysisRepo.create(
         db, user_id=user.id, raw_text=raw_text,

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.errors import ConflictError, InvalidRequestError, NotFoundError, ProviderUnavailableError
+from app.errors import ConflictError, InvalidRequestError, NotFoundError, ProviderUnavailableError, RateLimitedError
 from app.routers import auth, drafts, jobs, profiles, jd, resumes, system
 
 # Schema is managed by Alembic: run `alembic upgrade head` before starting the app.
@@ -54,6 +54,11 @@ async def invalid_request(_: Request, exc: InvalidRequestError):
 @app.exception_handler(ProviderUnavailableError)
 async def provider_unavailable(_: Request, exc: ProviderUnavailableError):
     return JSONResponse({"detail": str(exc)}, status_code=503)
+
+
+@app.exception_handler(RateLimitedError)
+async def rate_limited(_: Request, exc: RateLimitedError):
+    return JSONResponse({"detail": str(exc)}, status_code=429, headers={"Retry-After": str(exc.retry_after)})
 
 
 # ── Routers ───────────────────────────────────────────────────

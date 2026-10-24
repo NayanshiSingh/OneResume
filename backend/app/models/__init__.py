@@ -7,11 +7,12 @@ from app.models.profile import (
 from app.models.jd import JDAnalysis
 from app.models.resume import Resume, ResumeSection, ExportArtifact
 from app.models.draft import Draft, GenerationJob
+from app.models.usage import AuthAttempt, UsageEvent
 
 __all__ = [
     "User", "UserSession", "PasswordResetToken", "Profile", "Education",
     "Skill", "Experience", "ExperienceBullet", "Project", "ProjectBullet",
     "Certification", "Achievement", "ExternalProfile", "PersonalInfo",
     "JDAnalysis", "Resume", "ResumeSection", "ExportArtifact",
-    "Draft", "GenerationJob",
+    "Draft", "GenerationJob", "UsageEvent", "AuthAttempt",
 ]
