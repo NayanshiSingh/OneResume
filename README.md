@@ -388,7 +388,7 @@ pytest tests/test_jd_analyzer.py
 pytest tests/test_integration.py
 ```
 
-**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) and `--offline` to check the harness without any API calls. Do not use the free tier with real resumes: Google may use free-tier data to improve its products.
+**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) and `--offline` to check the harness without any API calls. Do not use the free tier with real resumes: Google may use free-tier data to improve its products. The **Data & AI** page in the dashboard lists exactly what each provider receives.
 
 **Test Suite Coverage:**
 
@@ -401,6 +401,7 @@ pytest tests/test_integration.py
 | `test_migrations.py` | Alembic migrations match the models |
 | `test_evidence_service.py` | Token-aware evidence labels |
 | `test_import.py` | Resume import parsing, preview, and apply |
+| `test_profile_checks.py` | Profile suggestions, and that they never block drafts |
 | `test_jobs.py` | Background jobs: idempotency, failure, retry, stale reclaim |
 | `test_drafts.py` | Draft selection, edits, approval by revision, export |
 | `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
@@ -430,6 +431,7 @@ pytest tests/test_integration.py
 | `POST` / `PATCH` / `DELETE` / `PUT` | `/api/profile/{experience\|projects}/…/bullets` | Add, edit, remove, and reorder bullets |
 | `POST` | `/api/jd/analyze` | Submit and analyze a job description |
 | `POST` | `/api/profile/import` → `/api/profile/import/apply` | Preview an uploaded PDF/DOCX, then save the reviewed result |
+| `GET` | `/api/profile/checks` | Optional suggestions: vague or short bullets (with questions to answer), missing contact details, missing graduation month, skills listed without evidence |
 | `PUT` | `/api/jd/{id}` | Save reviewed requirements |
 | `GET` | `/api/jd/{id}/coverage` | Evidence label for each requirement |
 | `POST` | `/api/drafts` | Queue a draft (returns a job; poll `GET /api/jobs/{id}`) |
