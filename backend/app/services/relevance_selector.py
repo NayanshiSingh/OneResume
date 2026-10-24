@@ -5,22 +5,22 @@ decide which entries and bullets start out included. Entries keep the
 user's profile order (normally reverse-chronological): relevance changes
 what is shown, never where it sits. Bullet wording is the user's own.
 
-Page budget: experience and project bullets share BULLETS_PER_PAGE per page.
-Each included job keeps its best bullet so the timeline stays readable;
-the rest of the budget goes to the highest-scoring bullets anywhere, and a
-project left with no bullets is left out.
+Page budget: experience and project bullets share BULLETS_PER_PAGE per page,
+filled in this order:
+1. proof: for each supported requirement (required first), its best evidence
+   bullet, so the draft shows what the coverage check claims;
+2. each included job's best bullet, so the timeline stays readable;
+3. everything else, by score.
+Entries holding proof are chosen before other entries, and a project left
+with no bullets is left out.
 """
 
 from app.config import settings
 from app.domain.resume_draft import JDData
 from app.models.profile import Profile
 from app.services.embedding_service import embedding_from_json
-from app.services.evidence_service import alternatives, contains_term, tokens
+from app.services.evidence_service import SUPPORTED, RequirementMatch, alternatives, contains_term, tokens
 from app.services.scoring_engine import score_bullet, score_section
-
-
-def _top_ids(scored: list[tuple[str, float]], limit: int) -> set[str]:
-    return {item_id for item_id, _ in sorted(scored, key=lambda s: s[1], reverse=True)[:limit]}
 
 
 def _bullets(bullets, jd: JDData, jd_embedding: list[float] | None, section_type: str, end_date) -> list[dict]:
@@ -33,13 +33,33 @@ def _bullets(bullets, jd: JDData, jd_embedding: list[float] | None, section_type
     ]
 
 
-def _select_entries(entries: list[dict], limit: int) -> None:
-    included = _top_ids([(e["id"], e["score"]) for e in entries], limit)
+def _proof(coverage: list[RequirementMatch], entries: list[dict]) -> tuple[list[str], set[str]]:
+    """Best evidence bullet per supported requirement, and entries that hold any proof."""
+    bullets = {b["id"]: (e, b) for e in entries for b in e["bullets"]}
+    entry_ids = {e["id"] for e in entries}
+    proof: list[str] = []
+    proof_entries: set[str] = set()
+    for match in coverage:
+        if match.label != SUPPORTED:
+            continue
+        candidates = [bullets[ev.id] for ev in match.evidence if ev.id in bullets]
+        if candidates and not any(b["id"] in proof for _, b in candidates):
+            entry, bullet = max(candidates, key=lambda c: c[1]["score"])
+            proof.append(bullet["id"])
+            proof_entries.add(entry["id"])
+        elif not candidates:
+            proof_entries |= {ev.id for ev in match.evidence if ev.id in entry_ids}
+    return proof, proof_entries
+
+
+def _select_entries(entries: list[dict], limit: int, proof_entries: set[str]) -> None:
+    ranked = sorted(entries, key=lambda e: (e["id"] in proof_entries, e["score"]), reverse=True)[:limit]
+    included = {e["id"] for e in ranked}
     for entry in entries:
         entry["included"] = entry["id"] in included
 
 
-def _allocate_bullets(experience: list[dict], projects: list[dict], page_target: int) -> None:
+def _allocate_bullets(experience: list[dict], projects: list[dict], page_target: int, proof: list[str]) -> None:
     budget = settings.BULLETS_PER_PAGE * page_target
     per_entry = settings.MAX_BULLETS_PER_SECTION + (page_target - 1) * 2
     counts: dict[str, int] = {}
@@ -50,14 +70,16 @@ def _allocate_bullets(experience: list[dict], projects: list[dict], page_target:
         counts[entry["id"]] = counts.get(entry["id"], 0) + 1
         budget -= 1
 
+    candidates = [(e, b) for e in experience + projects if e["included"] for b in e["bullets"]]
+    by_id = {b["id"]: (e, b) for e, b in candidates}
+    for bullet_id in proof:
+        if bullet_id in by_id and budget > 0:
+            take(*by_id[bullet_id])
     for entry in sorted((e for e in experience if e["included"] and e["bullets"]), key=lambda e: e["score"], reverse=True):
-        if budget > 0:
+        if budget > 0 and not counts.get(entry["id"]):
             take(entry, max(entry["bullets"], key=lambda b: b["score"]))
-    remaining = sorted(
-        ((b["score"], e, b) for e in experience + projects if e["included"] for b in e["bullets"] if not b["included"]),
-        key=lambda item: item[0], reverse=True,
-    )
-    for _, entry, bullet in remaining:
+    remaining = sorted(((e, b) for e, b in candidates if not b["included"]), key=lambda c: c[1]["score"], reverse=True)
+    for entry, bullet in remaining:
         if budget <= 0:
             break
         if counts.get(entry["id"], 0) < per_entry:
@@ -66,7 +88,8 @@ def _allocate_bullets(experience: list[dict], projects: list[dict], page_target:
         project["included"] = project["included"] and counts.get(project["id"], 0) > 0
 
 
-def select_content(profile: Profile, jd: JDData, jd_embedding: list[float] | None, page_target: int = 1) -> dict:
+def select_content(profile: Profile, jd: JDData, jd_embedding: list[float] | None,
+                   coverage: list[RequirementMatch], page_target: int = 1) -> dict:
 
     experience = [
         {
@@ -92,9 +115,10 @@ def select_content(profile: Profile, jd: JDData, jd_embedding: list[float] | Non
         for proj in profile.projects
     ]
 
-    _select_entries(experience, settings.MAX_EXPERIENCE_SECTIONS * page_target)
-    _select_entries(projects, settings.MAX_PROJECT_SECTIONS * page_target)
-    _allocate_bullets(experience, projects, page_target)
+    proof, proof_entries = _proof(coverage, experience + projects)
+    _select_entries(experience, settings.MAX_EXPERIENCE_SECTIONS * page_target, proof_entries)
+    _select_entries(projects, settings.MAX_PROJECT_SECTIONS * page_target, proof_entries)
+    _allocate_bullets(experience, projects, page_target, proof)
 
     jd_terms = jd.must_have_skills + jd.nice_to_have_skills
     skills = []
