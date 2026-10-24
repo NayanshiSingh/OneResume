@@ -24,15 +24,16 @@ export default function DataPage() {
             </div>
 
             <section className={styles.section}>
-                <span className="mono-label">GOOGLE GEMINI <Status on={status?.llm} /></span>
+                <span className="mono-label">{(status?.llm_provider ?? "AI PROVIDER").toUpperCase()} <Status on={status?.llm} /></span>
                 <ul className={styles.list}>
                     <li><strong>Importing a resume:</strong> the full text of the file you upload, including your name and contact details.</li>
                     <li><strong>Analysing a job description:</strong> the text you paste.</li>
                     <li><strong>Suggested wording:</strong> the role title and requirements, plus each selected bullet with its job or project title. A second request checks each suggestion against your original bullet. Your name, email, phone, and links are not sent.</li>
                 </ul>
                 <p className="body-text">
-                    If the server&apos;s Gemini key is on Google&apos;s free tier, Google may use what is sent to improve its products.
-                    Use a paid key before entering real resumes.
+                    {status?.llm_provider === "Google Gemini"
+                        ? "If the server's Gemini key is on Google's free tier, Google may use what is sent to improve its products. Use a paid key before entering real resumes."
+                        : `Check ${status?.llm_provider ?? "the provider"}'s data policy for how long it keeps requests and whether it trains on them.`}
                 </p>
             </section>
 

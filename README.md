@@ -93,9 +93,12 @@ Job applicants must tailor their resumes for *every* role to maximize relevance 
 
 OneResume leverages two distinct generative AI services, each with a clearly defined responsibility boundary — ensuring **no AI overreach** and **full explainability**.
 
-### 1. Google Gemini (`gemini-3-flash-preview`)
+### 1. LLM: Google Gemini or any OpenAI-compatible API (e.g. Groq)
 
-Every call goes through `llm_client.py` (Google's `google-genai` SDK): JSON output against a Pydantic schema, a low thinking level to keep cost down, and token usage logged per purpose.
+Every call goes through `llm_client.py`: JSON output against a Pydantic schema, a low thinking level to keep cost down, waiting out short rate limits in background jobs, and token usage logged per purpose. `LLM_PROVIDER` picks the backend:
+
+- `gemini` (default): Google's `google-genai` SDK with `gemini-3-flash-preview`. The free tier allows about 20 requests a day, and Google may use free-tier data to improve its products.
+- `openai_compatible`: any `/chat/completions` API. The defaults point at the **Groq free plan** (`openai/gpt-oss-120b`, no card needed; about 1,000 requests and 200K tokens a day, 8K tokens a minute). Groq's terms say it does not train on API inputs or outputs. Strict structured outputs (`LLM_STRICT_SCHEMA`) make the model's JSON match the schema exactly. Ollama, LM Studio, and OpenRouter work by changing `LLM_BASE_URL` and `LLM_MODEL` (local servers accept any `LLM_API_KEY`).
 
 | Use Case | Service | Responsibility |
 |---|---|---|
@@ -223,12 +226,12 @@ OneResume/
 │   │   │   ├── draft_service.py       # Build, edit, approve, and export drafts
 │   │   │   ├── job_service.py         # Database-backed background jobs
 │   │   │   ├── evidence_service.py    # Requirement evidence labels (token-aware)
-│   │   │   ├── import_service.py      # PDF/DOCX resume import (Gemini + fallback)
-│   │   │   ├── jd_analyzer.py         # JD → structured data (Gemini + fallback)
+│   │   │   ├── import_service.py      # PDF/DOCX resume import (LLM + fallback)
+│   │   │   ├── jd_analyzer.py         # JD → structured data (LLM + fallback)
 │   │   │   ├── embedding_service.py   # Text → 1024D vectors (Pinecone)
 │   │   │   ├── scoring_engine.py      # Composite relevance scoring
 │   │   │   ├── relevance_selector.py  # Draft content: what starts included, in profile order
-│   │   │   ├── llm_client.py          # The single Gemini client (schemas, retries, usage)
+│   │   │   ├── llm_client.py          # The single LLM client (Gemini or OpenAI-compatible)
 │   │   │   ├── rewrite_service.py     # Suggested rewording plus a second-model check
 │   │   │   ├── claim_checks.py        # Deterministic checks that a rewrite adds nothing
 │   │   │   ├── resume_assembler.py    # Final resume data assembly
@@ -358,7 +361,7 @@ npm run dev
 
 Open `http://localhost:3000`. Next.js proxies `/api/*` to the backend (`BACKEND_URL`, default `http://localhost:8000`), so the session cookie stays first-party.
 
-Without `GEMINI_API_KEY`, resume import and JD analysis use rule-based parsing. Without `PINECONE_API_KEY`, drafts use exact-word matching. Both are labelled "basic mode" in the app; nothing is downgraded silently. Drafts always keep your own wording.
+Without an LLM key (`GEMINI_API_KEY`, or `LLM_API_KEY` with `LLM_PROVIDER=openai_compatible`), resume import and JD analysis use rule-based parsing and drafts get no suggestions. Without `PINECONE_API_KEY`, drafts use exact-word matching. Both are labelled "basic mode" in the app; nothing is downgraded silently. Drafts always keep your own wording.
 
 Password reset emails are written to the backend log in development.
 
@@ -388,7 +391,7 @@ pytest tests/test_jd_analyzer.py
 pytest tests/test_integration.py
 ```
 
-**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Use `--rpm 4` on the Gemini free tier (5 requests per minute) `--offline` to check the harness without any API calls, and `--no-gemini` for real Pinecone matching with Gemini off (selection and labels only, free). Do not use the free tier with real resumes: Google may use free-tier data to improve its products. The **Data & AI** page in the dashboard lists exactly what each provider receives.
+**Evaluation set (live):** `python -m evaluation.run_eval` loads the 8 synthetic personas into a throwaway in-memory database, checks JD extraction on the 20 job descriptions, builds the 35 task drafts with real embeddings and suggestions, and scores them against the answer key (evidence labels, must-include and should-omit entries, and safe suggestions that introduce forbidden claims). It stops at `--max-cost` (default $1.50) and writes a JSON report plus a calibration sheet to `backend/evaluation/results/` (gitignored). Live runs wait out short rate limits (up to 2 minutes per call) instead of falling back. Use `--rpm` to stay under a per-minute request limit, `--offline` to check the harness without any API calls, and `--no-llm` for real Pinecone matching with the LLM off (selection and labels only, free). Do not use Gemini's free tier with real resumes: Google may use free-tier data to improve its products. The **Data & AI** page in the dashboard lists exactly what each provider receives.
 
 **Test Suite Coverage:**
 
@@ -404,7 +407,8 @@ pytest tests/test_integration.py
 | `test_profile_checks.py` | Profile suggestions, and that they never block drafts |
 | `test_jobs.py` | Background jobs: idempotency, failure, retry, stale reclaim |
 | `test_drafts.py` | Draft selection, edits, approval by revision, export |
-| `test_jd_analyzer.py` | JD analysis (Gemini + fallback) |
+| `test_jd_analyzer.py` | JD analysis (LLM + fallback) |
+| `test_llm_client.py` | Provider selection, the OpenAI-compatible adapter, strict schemas, rate limits |
 | `test_embedding_service.py` | Embedding generation & cosine similarity |
 | `test_scoring_engine.py` | Composite scoring formula |
 | `test_rewrites.py` | Claim checks, the two-step suggestion check, accepting suggestions, rate-limit retries |
@@ -459,8 +463,16 @@ All configuration is managed via environment variables (loaded from `.env`):
 | Variable | Default | Description |
 |---|---|---|
 | `DATABASE_URL` | `sqlite:///oneresume.db` | Database connection string (`.env.example` points at Docker Postgres) |
+| `LLM_PROVIDER` | `gemini` | `gemini` or `openai_compatible` |
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model identifier |
+| `LLM_API_KEY` | — | Key for the OpenAI-compatible API (Groq: console.groq.com/keys) |
+| `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | OpenAI-compatible base URL |
+| `LLM_MODEL` | `openai/gpt-oss-120b` | Model for the OpenAI-compatible API |
+| `LLM_PROVIDER_NAME` | `Groq` | Name shown to users on the Data & AI page |
+| `LLM_REASONING_EFFORT` | `low` | Sent as `reasoning_effort`; empty to omit |
+| `LLM_STRICT_SCHEMA` | `true` | Strict structured outputs (needs a model that supports them) |
+| `LLM_INPUT_PRICE_PER_M` / `LLM_OUTPUT_PRICE_PER_M` | `0` / `0` | USD per 1M tokens, for cost reporting and `--max-cost` |
 | `PINECONE_API_KEY` | — | Pinecone API key for embeddings |
 | `EMBEDDING_MODEL` | `multilingual-e5-large` | Embedding model name |
 | `EMBEDDING_DIM` | `1024` | Embedding vector dimensions |

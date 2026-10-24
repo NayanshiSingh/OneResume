@@ -352,6 +352,7 @@ class ProfileCheck(BaseModel):
 
 class AIStatus(BaseModel):
     llm: bool
+    llm_provider: str
     embeddings: bool
 
 
