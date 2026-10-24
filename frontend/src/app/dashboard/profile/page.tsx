@@ -3,11 +3,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+    AlertTriangle,
     ArrowDown,
     ArrowUp,
     Check,
     ChevronDown,
     ChevronRight,
+    Lightbulb,
     Pencil,
     Plus,
     Save,
@@ -21,6 +23,7 @@ import {
     type BulletParent,
     type FieldValues,
     type Profile,
+    type ProfileCheck,
 } from "@/lib/api";
 import { MONTHS, SECTIONS, type FieldDef, type Item, type SectionDef } from "@/lib/profileFields";
 import styles from "./page.module.css";
@@ -285,15 +288,41 @@ function PersonalInfoForm({ profile, run }: { profile: Profile; run: Runner }) {
     );
 }
 
+/* ── Profile checks ─────────────────────────────────────────── */
+
+function ProfileChecks({ checks }: { checks: ProfileCheck[] }) {
+    if (checks.length === 0) return null;
+    return (
+        <div className={styles.checks} role="status">
+            <span className="mono-label">PROFILE_CHECKS: optional, these never block a draft</span>
+            <ul className={styles.checkList}>
+                {checks.map((c, i) => (
+                    <li key={`${c.kind}-${c.bullet_id ?? c.item_id ?? i}`} className={c.severity === "warning" ? styles.checkWarning : undefined}>
+                        <span>{c.severity === "warning" ? <AlertTriangle size={12} /> : <Lightbulb size={12} />} {c.message}</span>
+                        {c.questions.length > 0 && (
+                            <ul className={styles.checkQuestions}>
+                                {c.questions.map((q) => <li key={q}>{q}</li>)}
+                            </ul>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 /* ── Page ───────────────────────────────────────────────────── */
 
 export default function ProfilePage() {
     const router = useRouter();
     const [profile, setProfile] = useState<Profile | null>(null);
+    const [checks, setChecks] = useState<ProfileCheck[]>([]);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        profileApi.get().then(setProfile).catch((err: unknown) => setError((err as Error).message));
+        Promise.all([profileApi.get(), profileApi.checks()])
+            .then(([p, c]) => { setProfile(p); setChecks(c); })
+            .catch((err: unknown) => setError((err as Error).message));
     }, []);
 
     /** Run a change, then reload the profile so the page always shows saved data. */
@@ -301,7 +330,9 @@ export default function ProfilePage() {
         setError("");
         try {
             await action();
-            setProfile(await profileApi.get());
+            const [p, c] = await Promise.all([profileApi.get(), profileApi.checks()]);
+            setProfile(p);
+            setChecks(c);
             return true;
         } catch (err: unknown) {
             setError((err as Error).message);
@@ -338,6 +369,7 @@ export default function ProfilePage() {
                 </div>
             ) : (
                 <div className={styles.sections}>
+                    <ProfileChecks checks={checks} />
                     <PersonalInfoForm profile={profile} run={run} />
                     {SECTIONS.map((def) => (
                         <SectionEditor

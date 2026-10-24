@@ -11,6 +11,7 @@ import {
     ArrowLeft,
     LogOut,
     Upload,
+    Shield,
 } from "lucide-react";
 import styles from "./layout.module.css";
 import { useEffect, useState } from "react";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
     { href: "/dashboard/analyze", label: "JOB_DESCRIPTION", icon: FileSearch, tag: "SYS_03" },
     { href: "/dashboard/drafts", label: "DRAFTS", icon: Sparkles, tag: "SYS_04" },
     { href: "/dashboard/resumes", label: "MY_RESUMES", icon: FileText, tag: "SYS_05" },
+    { href: "/dashboard/data", label: "DATA_&_AI", icon: Shield, tag: "SYS_06" },
 ];
 
 function AIStatusBanner() {

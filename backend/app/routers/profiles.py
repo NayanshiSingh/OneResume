@@ -18,11 +18,11 @@ from app.schemas import (
     ExperienceCreate, ExperienceOut, ExperienceUpdate,
     ExternalProfileCreate, ExternalProfileOut, ExternalProfileUpdate,
     ImportPreview, PersonalInfoCreate, PersonalInfoOut, ProfileImport, ProfileOut,
-    ProjectCreate, ProjectOut, ProjectUpdate,
+    ProfileCheck, ProjectCreate, ProjectOut, ProjectUpdate,
     ReorderRequest,
     SkillCreate, SkillOut, SkillUpdate,
 )
-from app.services import import_service, profile_service
+from app.services import import_service, profile_checks, profile_service
 
 router = APIRouter()
 
@@ -30,6 +30,12 @@ router = APIRouter()
 @router.get("", response_model=ProfileOut)
 def get_profile(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return profile_service.get_profile(db, user)
+
+
+@router.get("/checks", response_model=list[ProfileCheck])
+def get_profile_checks(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Optional suggestions (vague bullets, missing contact details). Never blocks generation."""
+    return profile_checks.run_checks(profile_service.get_profile(db, user))
 
 
 @router.put("/personal-info", response_model=PersonalInfoOut)
