@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 from app.models.user import PasswordResetToken, User, UserSession
+from app.clock import utcnow
 from app.services import auth_service, mailer
 from tests.conftest import TEST_PASSWORD, signup
 
@@ -65,7 +66,7 @@ class TestLogin:
 
     def test_expired_session_is_rejected(self, client, db):
         session = db.query(UserSession).one()
-        session.expires_at = auth_service.utcnow() - timedelta(seconds=1)
+        session.expires_at = utcnow() - timedelta(seconds=1)
         db.commit()
         assert client.get("/api/auth/me").status_code == 401
         assert db.query(UserSession).count() == 0
@@ -100,7 +101,7 @@ class TestPasswordReset:
     def test_expired_reset_token_rejected(self, client, db, monkeypatch):
         links = _capture_reset_links(monkeypatch)
         client.post("/api/auth/password-reset/request", json={"email": "owner@example.com"})
-        db.query(PasswordResetToken).one().expires_at = auth_service.utcnow() - timedelta(seconds=1)
+        db.query(PasswordResetToken).one().expires_at = utcnow() - timedelta(seconds=1)
         db.commit()
         body = {"token": _token_from(links[0]), "new_password": "brand-new-password"}
         assert client.post("/api/auth/password-reset/confirm", json=body).status_code == 400

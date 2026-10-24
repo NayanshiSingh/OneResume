@@ -7,27 +7,23 @@ usable tokens.
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
+from app.clock import utcnow
 from app.config import settings
 from app.errors import ConflictError
 from app.models.profile import Profile
 from app.models.user import PasswordResetToken, User, UserSession
-from app.services import mailer
+from app.services import mailer, usage_service
 from app.services.storage import get_storage
 
 _hasher = PasswordHash.recommended()
 # Verified against when the email is unknown, so login takes similar time either way.
 _DUMMY_HASH = _hasher.hash("timing-equaliser")
-
-
-def utcnow() -> datetime:
-    """Naive UTC, matching how DateTime columns are stored."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _token_hash(token: str) -> str:
@@ -56,6 +52,17 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
         _hasher.verify(password, _DUMMY_HASH)
         return None
     return user if _hasher.verify(password, user.password_hash) else None
+
+
+def sign_in(db: Session, email: str, password: str) -> User | None:
+    """Authenticate with throttling: too many recent failures for an email are refused before checking."""
+    usage_service.check_login_allowed(db, email)
+    user = authenticate(db, email, password)
+    if user is None:
+        usage_service.record_login_failure(db, email)
+    else:
+        usage_service.clear_login_failures(db, email)
+    return user
 
 
 def create_session(db: Session, user: User) -> str:
@@ -87,7 +94,7 @@ def revoke_session(db: Session, token: str) -> None:
 def request_password_reset(db: Session, email: str) -> None:
     """Send a reset link if the account exists. Callers must not reveal which."""
     user = db.query(User).filter(User.email == _normalise_email(email)).first()
-    if not user:
+    if not user or not usage_service.allow_reset_email(db, email):
         return
     token = secrets.token_urlsafe(32)
     db.add(PasswordResetToken(

@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from app.models.draft import GenerationJob
 from app.services import draft_service, job_service
-from app.services.auth_service import utcnow
+from app.clock import utcnow
 
 
 def _jd(client, text):
