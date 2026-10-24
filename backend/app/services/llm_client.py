@@ -6,10 +6,12 @@ report what they actually cost. Tests replace `_generate`.
 """
 
 import logging
+import re
+import time
 from dataclasses import dataclass, field
 
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 from pydantic import BaseModel
 
 from app.config import settings
@@ -57,6 +59,10 @@ class UsageLog:
 
 usage_log = UsageLog()
 _client: genai.Client | None = None
+_last_call = 0.0
+# Minimum seconds between calls; the evaluation harness sets this to stay under free-tier limits.
+min_interval_seconds = 0.0
+DEFAULT_RETRY_SECONDS = 30.0
 
 
 def _get_client() -> genai.Client:
@@ -83,9 +89,40 @@ def _generate(prompt: str, schema: type[BaseModel]) -> tuple[BaseModel, int, int
     return parsed, usage.prompt_token_count or 0, output_tokens
 
 
-def generate_json(prompt: str, schema: type[BaseModel], purpose: str) -> BaseModel:
-    """Call Gemini and return the parsed response. Raises on any provider or parsing error."""
-    parsed, input_tokens, output_tokens = _generate(prompt, schema)
+def _retry_after(exc: errors.ClientError) -> float:
+    """Seconds Gemini asks us to wait, from its RetryInfo detail when present."""
+    match = re.search(r"'retryDelay': '(\d+(?:\.\d+)?)s'", str(exc.details))
+    return float(match.group(1)) + 1 if match else DEFAULT_RETRY_SECONDS
+
+
+def _throttle() -> None:
+    global _last_call
+    wait = _last_call + min_interval_seconds - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_call = time.monotonic()
+
+
+def generate_json(prompt: str, schema: type[BaseModel], purpose: str, max_wait_seconds: float = 0) -> BaseModel:
+    """Call Gemini and return the parsed response. Raises on any provider or parsing error.
+
+    When Gemini rate-limits the call (HTTP 429), wait as asked and retry, as long as
+    the total wait stays within max_wait_seconds. Interactive requests pass 0 so
+    they fall back to basic mode at once; background jobs can afford to wait.
+    """
+    waited = 0.0
+    while True:
+        _throttle()
+        try:
+            parsed, input_tokens, output_tokens = _generate(prompt, schema)
+            break
+        except errors.ClientError as exc:
+            delay = _retry_after(exc)
+            if exc.code != 429 or waited + delay > max_wait_seconds:
+                raise
+            logger.warning("Gemini rate limit on %s; retrying in %.0fs", purpose, delay)
+            time.sleep(delay)
+            waited += delay
     usage_log.record(purpose, input_tokens, output_tokens)
     logger.info("Gemini %s: %d in, %d out tokens (~$%.5f)", purpose, input_tokens, output_tokens,
                 input_tokens * INPUT_PRICE + output_tokens * OUTPUT_PRICE)

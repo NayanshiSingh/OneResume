@@ -23,6 +23,8 @@ from app.services.llm_client import generate_json
 logger = logging.getLogger(__name__)
 
 MAX_BULLETS = 24
+# Drafts are built by the background worker, so rate limits are worth waiting out.
+MAX_WAIT_SECONDS = 180
 SAFE, BLOCKED = "safe", "blocked"
 SUGGESTIONS_OFF = "AI wording suggestions are off, so every bullet keeps your wording."
 SUGGESTIONS_FAILED = "AI wording suggestions failed, so every bullet keeps your wording."
@@ -107,7 +109,7 @@ def add_suggestions(content: dict, jd: JDData, skills: list[str]) -> list[str]:
 
     items = [{"id": b["id"], "context": f"{e['title']} {e['subtitle']}".strip(), "text": b["text"]} for e, b in targets]
     try:
-        proposed = {r.id: r.text.strip() for r in generate_json(_rewrite_prompt(jd, items), _Rewrites, "rewrite").rewrites}
+        proposed = {r.id: r.text.strip() for r in generate_json(_rewrite_prompt(jd, items), _Rewrites, "rewrite", MAX_WAIT_SECONDS).rewrites}
     except Exception:  # provider boundary: keep the user's wording
         logger.exception("Rewrite suggestions failed")
         return [SUGGESTIONS_FAILED]
@@ -126,7 +128,7 @@ def add_suggestions(content: dict, jd: JDData, skills: list[str]) -> list[str]:
         originals = {b["id"]: b["text"] for _, b in targets}
         pairs = [{"id": bid, "original": originals[bid], "rewrite": s["text"]} for bid, s in to_verify.items()]
         try:
-            verdicts = {v.id: v for v in generate_json(_check_prompt(pairs), _Verdicts, "rewrite_check").verdicts}
+            verdicts = {v.id: v for v in generate_json(_check_prompt(pairs), _Verdicts, "rewrite_check", MAX_WAIT_SECONDS).verdicts}
         except Exception:  # provider boundary: unverified suggestions are not offered
             logger.exception("Rewrite check failed")
             verdicts = {}

@@ -52,7 +52,7 @@ class FakeGemini:
     def __init__(self, rewrites, verdicts=None, fail=()):
         self.rewrites, self.verdicts, self.fail, self.check_pairs = rewrites, verdicts or {}, set(fail), None
 
-    def __call__(self, prompt, schema, purpose):
+    def __call__(self, prompt, schema, purpose, max_wait_seconds=0):
         if purpose in self.fail:
             raise RuntimeError("provider down")
         if purpose == "rewrite":
@@ -196,3 +196,36 @@ def test_export_uses_accepted_wording(client, draft_with_suggestions):
     text = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml").decode()
     assert "Developed REST APIs in Python" in text
     assert "Led the deployment" not in text
+
+
+# ── Rate limits ──────────────────────────────────────────────
+
+from google.genai import errors as genai_errors
+
+from app.services import llm_client
+
+
+def _rate_limit_error():
+    return genai_errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "quota",
+                                                     "details": [{"retryDelay": "2s"}]}})
+
+
+def test_background_calls_wait_out_rate_limits(monkeypatch):
+    calls, sleeps = [], []
+    def flaky(prompt, schema):
+        calls.append(1)
+        if len(calls) < 3:
+            raise _rate_limit_error()
+        return schema(rewrites=[]), 10, 5
+    monkeypatch.setattr(llm_client, "_generate", flaky)
+    monkeypatch.setattr(llm_client.time, "sleep", sleeps.append)
+    llm_client.generate_json("p", rewrite_service._Rewrites, "rewrite", max_wait_seconds=60)
+    assert len(calls) == 3 and sleeps == [3.0, 3.0]
+
+
+def test_interactive_calls_fail_fast_on_rate_limits(monkeypatch):
+    def limited(prompt, schema):
+        raise _rate_limit_error()
+    monkeypatch.setattr(llm_client, "_generate", limited)
+    with pytest.raises(genai_errors.ClientError):
+        llm_client.generate_json("p", rewrite_service._Rewrites, "rewrite")
