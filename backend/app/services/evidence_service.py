@@ -28,8 +28,14 @@ _ALIASES = {
     "golang": "go", "py": "python", "nextjs": "next.js", "vuejs": "vue", "vue.js": "vue",
     "endpoint": "api",
 }
-# Bullets that only describe helping are evidence of exposure, not of the skill itself.
-_HEDGES = {"helped", "help", "helping", "assisted", "assisting", "supported", "participated", "shadowed", "observed"}
+# Bullets that only describe helping are evidence of exposure, not of the skill itself:
+# "Helped the team with the Kubernetes deployment". Helping other people with a skill
+# ("Help students debug JavaScript") still shows the skill, so only these phrasings count.
+_HEDGED = re.compile(
+    r"\b(?:help(?:ed|ing)?|assist(?:ed|ing)?|support(?:ed|ing)?)\s+(?:the\s+team\s+)?(?:with|in|on)\b"
+    r"|\bhelped\s+the\s+team\b|\bparticipated\s+in\b|\binvolved\s+in\b|\bexposure\s+to\b|\bshadowed\b",
+    re.IGNORECASE,
+)
 _ALTERNATIVES = re.compile(r"\s*,\s*(?:or\s+)?|\s+or\s+", re.IGNORECASE)
 
 
@@ -109,7 +115,7 @@ def match_requirement(requirement: str, importance: str, evidence: list[Evidence
     terms = alternatives(requirement)
     hits = [e for e in evidence if any(contains_term(e._tokens, term) for term in terms)]
     demonstrated = [e for e in hits if e.kind != "skill"]
-    if any(not (set(e._tokens) & _HEDGES) for e in demonstrated):
+    if any(not _HEDGED.search(e.text) for e in demonstrated):
         return RequirementMatch(requirement, importance, SUPPORTED, demonstrated)
     if demonstrated:
         return RequirementMatch(requirement, importance, NEEDS_CONFIRMATION, demonstrated)

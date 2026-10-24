@@ -102,3 +102,14 @@ def test_any_unhedged_evidence_is_supported():
 
 def test_endpoints_count_as_apis():
     assert label_for("REST APIs", bullets=["Added two REST endpoints to a Spring service"]).label == SUPPORTED
+
+
+@pytest.mark.parametrize("bullet,label", [
+    ("Helped the team with the Kubernetes deployment", NEEDS_CONFIRMATION),
+    ("Assisted with Kubernetes upgrades", NEEDS_CONFIRMATION),
+    ("Participated in a Kubernetes migration", NEEDS_CONFIRMATION),
+    ("Help 20 students debug Kubernetes manifests", SUPPORTED),
+    ("Supported 3 teams running Kubernetes in production", SUPPORTED),
+])
+def test_only_hedged_phrasing_lowers_the_label(bullet, label):
+    assert label_for("Kubernetes", bullets=[bullet]).label == label
