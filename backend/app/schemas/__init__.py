@@ -385,7 +385,7 @@ DraftSection = Literal["experience", "projects", "education", "skills", "certifi
 
 
 class DraftOp(BaseModel):
-    op: Literal["set_included", "set_pinned", "edit_bullet", "revert_bullet"]
+    op: Literal["set_included", "set_pinned", "edit_bullet", "revert_bullet", "accept_suggestion"]
     section: DraftSection
     item_id: str
     bullet_id: Optional[str] = None
@@ -433,4 +433,5 @@ class DraftOut(DraftSummary):
     coverage: list[DraftCoverageItem]
     warnings: list[str]
     edited_bullets: list[EditedBullet]
+    accepted_suggestions: list[EditedBullet]
     exported_resume_id: Optional[str] = None

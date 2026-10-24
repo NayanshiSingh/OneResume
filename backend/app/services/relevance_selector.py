@@ -27,7 +27,8 @@ def _bullets(bullets, jd: JDData, jd_embedding: list[float] | None, section_type
     included = _top_ids(scored, limit)
     return [
         {"id": b.id, "text": b.bullet_text, "original_text": b.bullet_text, "score": score,
-         "included": b.id in included, "pinned": False, "user_edited": False}
+         "included": b.id in included, "pinned": False, "user_edited": False,
+         "ai_accepted": False, "suggestion": None}
         for b, (_, score) in zip(bullets, scored)
     ]
 

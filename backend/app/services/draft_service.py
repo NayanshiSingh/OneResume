@@ -17,7 +17,7 @@ from app.models.profile import Profile
 from app.models.resume import Resume
 from app.models.user import User
 from app.repositories import JDAnalysisRepo, ResumeRepo
-from app.services import evidence_service, job_service, profile_service
+from app.services import evidence_service, job_service, profile_service, rewrite_service
 from app.services.ai_status import AI, BASIC, embeddings_available
 from app.services.embedding_service import embedding_from_json, embedding_to_json, generate_embedding, generate_embeddings
 from app.services.export_service import create_resume_record, render_and_store
@@ -94,10 +94,12 @@ def build_draft(db: Session, user: User, jd_id: str, page_target: int) -> Draft:
     jd = structured(record)
     mode, jd_embedding, warnings = _embeddings(db, profile, record, jd)
     coverage = evidence_service.coverage(profile, jd)
+    content = select_content(profile, jd, jd_embedding, page_target)
+    warnings += rewrite_service.add_suggestions(content, jd, [s.skill_name for s in profile.skills])
     draft = Draft(
         profile_id=profile.id, jd_id=record.id, job_title=jd.role_title or "Untitled role",
         page_target=page_target, matching_mode=mode,
-        content=json.dumps(select_content(profile, jd, jd_embedding, page_target)),
+        content=json.dumps(content),
         coverage=json.dumps([m.to_dict() for m in coverage]),
         warnings=json.dumps(warnings + _profile_warnings(profile, record, coverage)),
     )
@@ -146,17 +148,20 @@ def view(draft: Draft) -> dict:
         {**item, "in_draft": any(e["id"] in included for e in item["evidence"])}
         for item in json.loads(draft.coverage)
     ]
-    edited = [
-        {"section": section, "item_id": entry["id"], "bullet_id": b["id"], "original_text": b["original_text"], "text": b["text"]}
-        for section in BULLET_SECTIONS for entry in content[section] for b in entry["bullets"] if b["user_edited"]
-    ]
+    def changed(flag: str) -> list[dict]:
+        return [
+            {"section": section, "item_id": entry["id"], "bullet_id": b["id"], "original_text": b["original_text"], "text": b["text"]}
+            for section in sorted(BULLET_SECTIONS) for entry in content[section] for b in entry["bullets"] if b.get(flag)
+        ]
+
     exported = next((r.id for r in draft.resumes if r.draft_revision == draft.revision), None)
     return {
         "id": draft.id, "jd_id": draft.jd_id, "job_title": draft.job_title, "page_target": draft.page_target,
         "matching_mode": draft.matching_mode, "status": draft.status, "revision": draft.revision,
         "approved_revision": draft.approved_revision, "created_at": draft.created_at, "updated_at": draft.updated_at,
         "content": content, "coverage": coverage, "warnings": json.loads(draft.warnings),
-        "edited_bullets": edited, "exported_resume_id": exported,
+        "edited_bullets": changed("user_edited"), "accepted_suggestions": changed("ai_accepted"),
+        "exported_resume_id": exported,
     }
 
 
@@ -181,7 +186,7 @@ def _apply(content: dict, op) -> None:
     target = _target(content, op)
     if op.op in {"set_included", "set_pinned"} and op.value is None:
         raise InvalidRequestError(f"{op.op} needs a value")
-    if op.op in {"edit_bullet", "revert_bullet"} and op.bullet_id is None:
+    if op.op in {"edit_bullet", "revert_bullet", "accept_suggestion"} and op.bullet_id is None:
         raise InvalidRequestError(f"{op.op} needs a bullet_id")
     if op.op == "set_included":
         target["included"] = op.value
@@ -195,8 +200,14 @@ def _apply(content: dict, op) -> None:
             raise InvalidRequestError("Bullet text cannot be empty")
         target["text"] = op.text.strip()
         target["user_edited"] = target["text"] != target["original_text"]
+        target["ai_accepted"] = False
+    elif op.op == "accept_suggestion":
+        suggestion = target.get("suggestion")
+        if not suggestion or suggestion["status"] != rewrite_service.SAFE:
+            raise InvalidRequestError("Only suggestions that passed every check can be accepted")
+        target["text"], target["user_edited"], target["ai_accepted"] = suggestion["text"], False, True
     elif op.op == "revert_bullet":
-        target["text"], target["user_edited"] = target["original_text"], False
+        target["text"], target["user_edited"], target["ai_accepted"] = target["original_text"], False, False
 
 
 def _check_revision(draft: Draft, revision: int) -> None:
